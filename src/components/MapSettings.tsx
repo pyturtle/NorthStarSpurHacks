@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useState } from "react";
 import styles from "../app/page.module.css"; // or "../styles/sidebar.module.css"
@@ -22,7 +21,8 @@ export function MapSettingsSidebar() {
             <aside
                 className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}
             >
-                <h2>Map Settings WOrking on it </h2>
+
+                <h2>Map Settings Working on it </h2>
                 {/*TODO add controls*/}
                 <div>
                     <label>

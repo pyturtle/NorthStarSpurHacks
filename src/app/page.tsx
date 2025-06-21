@@ -17,6 +17,7 @@ export default function Home() {
     // Ref to hold the map container and map instance
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map>(null);
+    const markerRef = useRef<mapboxgl.Marker | null>(null);
 
     // State to hold selected location from map click
     const [selectedLocation, setSelectedLocation] = useState<{
@@ -74,8 +75,23 @@ export default function Home() {
         });
 
         mapRef.current.on("click", async (e) => {
+            // If there is a current marker remove it and set the location to null
+            // Double click to remove marker
+            if (markerRef.current){
+                markerRef.current.remove();
+                markerRef.current = null;
+                setSelectedLocation(null);
+                return;
+            }
+
+            // Create a new marker at the clicked location
             const lng = e.lngLat.lng;
             const lat = e.lngLat.lat;
+            markerRef.current = new mapboxgl.Marker({ color: "#007AFF" })
+                .setLngLat([lng, lat])
+                .addTo(mapRef.current!);
+
+            // Reverse geocode the clicked location to get address details
             const response = await geocoder.reverse(e.lngLat, {
                 types: new Set([
                     "address",
@@ -87,6 +103,7 @@ export default function Home() {
             });
 
             const feat = response.features?.[0];
+
             if (feat) {
                 setSelectedLocation({
                     coords: [lng, lat] as [number, number],
@@ -122,25 +139,30 @@ export default function Home() {
 
                 {selectedLocation && (
                     <>
-                        <button
-                            className={styles.actionButton}
-                            onClick={() => {
-                                setOrigin(selectedLocation.coords);
-                                setSelectedLocation(null);
-                            }}
-                        >
-                            Set as Start
-                        </button>
-                        <button
-                            className={styles.actionButton}
-                            onClick={() => {
-                                setDestination(selectedLocation.coords);
-                                setSelectedLocation(null);
-                            }}
-                        >
-                            Set as End
-                        </button>
-                        <InfoPanel feature={selectedLocation.feature} />
+
+                        <div className={styles.buttonGroup}>
+                            <button
+                                className={styles.actionButton}
+                                onClick={() => {
+                                    setOrigin(selectedLocation.coords);
+                                    setSelectedLocation(null);
+                                }}
+                            >
+                                Set as Start
+                            </button>
+                            <button
+                                className={styles.actionButton}
+                                onClick={() => {
+                                    setDestination(selectedLocation.coords);
+                                    setSelectedLocation(null);
+                                }}
+                            >
+                                Set as End
+                            </button>
+                        </div>
+
+                        <InfoPanel feature={selectedLocation.feature}/>
+
                     </>
 
                 )}
