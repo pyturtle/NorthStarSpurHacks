@@ -2,7 +2,7 @@ import mapboxgl from "mapbox-gl";
 
 // Import your datasets
 import shootings from "@/public/layer-data/shootings_2023-2025.json";
-// import assaults from "@/public/layer-data/assaults_2023-2025.json"; // example: another dataset
+// import stabbings from "@/public/layer-data/stabbings.json"; // example: another dataset
 
 export class MapLayers {
   static circleColor: string = "#ff0000"
@@ -51,7 +51,8 @@ export class MapLayers {
   // refreshing method
   static restoreAllLayers(map: mapboxgl.Map) {
     this.addShootings(map);
-    // this.addAssaults(map);
+    this.addAssaults(map);
+
   }
 
   // Red lines appear on these methods due to typescript not understanding their type
