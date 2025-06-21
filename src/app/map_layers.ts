@@ -1,115 +1,185 @@
 import mapboxgl from "mapbox-gl";
 
-// Import datasets from public folder
 import shootings from "@/public/layer-data/shootings_2023-2025.json";
-import assaults from "@/public/layer-data/assaults.json";
-import autoThefts from "@/public/layer-data/auto thefts.json";
-import bicycleThefts from "@/public/layer-data/bicycle thefts.json";
-import homicides from "@/public/layer-data/homicides.json";
-import motorThefts from "@/public/layer-data/motor thefts.json";
-import robberies from "@/public/layer-data/robberies.json";
-import theftsOver from "@/public/layer-data/thefts over open.json";
+import assaults from "@/public/layer-data/assaults_2023-2025.json";
+import autoThefts from "@/public/layer-data/auto thefts_2023-2025.json";
+import bicycleThefts from "@/public/layer-data/bicycle thefts_2023-2025.json";
+import homicides from "@/public/layer-data/homicides_2023-2025.json";
+import motorThefts from "@/public/layer-data/motor thefts_2023-2025.json";
+import robberies from "@/public/layer-data/robberies_2023-2025.json";
+import theftsOver from "@/public/layer-data/thefts over open_2023-2025.json";
+
+const datasets = [
+  { id: "shootings", data: shootings },
+  { id: "assaults", data: assaults },
+  { id: "auto_thefts", data: autoThefts },
+  { id: "bicycle_thefts", data: bicycleThefts },
+  { id: "homicides", data: homicides },
+  { id: "motor_thefts", data: motorThefts },
+  { id: "robberies", data: robberies },
+  { id: "thefts_over_open", data: theftsOver }
+];
 
 export class MapLayers {
-  static circleColor: string = "#ff0000";
-  static circleOpacity: number = 0.7;
-
-  // Common paint style for all circle layers
-  private static get commonPaint(): mapboxgl.CircleLayerSpecification['paint'] {
-    return {
-      "circle-radius": 8,
-      "circle-color": this.circleColor,
-      "circle-opacity": this.circleOpacity,
-      "circle-stroke-color": "#000000",
-    };
+  private static groupFeaturesByLocation(
+    data: GeoJSON.FeatureCollection
+  ): Map<string, GeoJSON.Feature[]> {
+    const map = new Map<string, GeoJSON.Feature[]>();
+    for (const feat of data.features) {
+      const [lng, lat] = (feat.geometry as any).coordinates;
+      const key = `${lng.toFixed(6)},${lat.toFixed(6)}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(feat);
+    }
+    return map;
   }
 
-  // Add a generic layer to the map given ID and GeoJSON data
-  private static addLayer(
+  /**
+   * Spread overlapping features vertically using polygon extrusions (for real 3D tower rendering).
+   * Each point becomes a small square polygon with a height set via level.
+   * Longest section is on the ground, next section stacks on top, and so on (tallest at base).
+   */
+  private static spreadFeatures(
+    features: GeoJSON.Feature[],
+    center: [number, number],
+    level: number
+  ): GeoJSON.Feature[] {
+    const towerBase = 0.00003;
+
+    const sorted = [...features];
+    sorted.sort((a, b) => JSON.stringify(b).length - JSON.stringify(a).length);
+
+    let currentBase = 0;
+    return sorted.map((feat, i) => {
+      const height = 20;
+      const base = currentBase;
+      currentBase += height;
+
+      const [lng, lat] = center;
+      const dx = towerBase;
+      const dy = towerBase;
+
+      const polygon: GeoJSON.Feature = {
+        type: "Feature",
+        geometry: {
+          type: "Polygon",
+          coordinates: [[
+            [lng - dx, lat - dy],
+            [lng + dx, lat - dy],
+            [lng + dx, lat + dy],
+            [lng - dx, lat + dy],
+            [lng - dx, lat - dy]
+          ]]
+        },
+        properties: {
+          ...(feat.properties || {}),
+          extrusionHeight: height,
+          extrusionBase: base
+        }
+      };
+
+      return polygon;
+    });
+  }
+
+  private static addClusterAndExpandedLayers(
     map: mapboxgl.Map,
     id: string,
-    data: GeoJSON.FeatureCollection
+    data: GeoJSON.FeatureCollection,
+    paint: mapboxgl.FillExtrusionLayerSpecification["paint"],
+    level: number
   ) {
-    if (!map.getSource(id)) {
-      map.addSource(id, {
+    const grouped = this.groupFeaturesByLocation(data);
+    const clustered: GeoJSON.Feature[] = [];
+    const expanded: GeoJSON.Feature[] = [];
+
+    grouped.forEach((group, key) => {
+      const [lng, lat] = key.split(",").map(Number);
+      if (group.length === 1) {
+        clustered.push(group[0]);
+        expanded.push(group[0]);
+      } else {
+        clustered.push({ ...group[0], geometry: { type: "Point", coordinates: [lng, lat] } });
+        expanded.push(...this.spreadFeatures(group, [lng, lat], level));
+      }
+    });
+
+    const clusterSourceId = `${id}-cluster`;
+    const expandedSourceId = `${id}-extruded`;
+
+    if (!map.getSource(clusterSourceId)) {
+      map.addSource(clusterSourceId, {
         type: "geojson",
-        data,
+        data: { type: "FeatureCollection", features: clustered },
       });
     }
 
-    if (!map.getLayer(id)) {
+    if (!map.getLayer(`${id}-cluster`)) {
       map.addLayer({
-        id,
+        id: `${id}-cluster`,
         type: "circle",
-        source: id,
-        paint: this.commonPaint,
+        source: clusterSourceId,
+        paint: {
+          "circle-color": paint["circle-color"] || "#888",
+          "circle-radius": 6,
+          "circle-opacity": 0.8,
+          "circle-emissive-strength": 1.5
+        },
+        minzoom: 0,
+        maxzoom: 14.9,
+      });
+    }
+
+    if (!map.getSource(expandedSourceId)) {
+      map.addSource(expandedSourceId, {
+        type: "geojson",
+        data: { type: "FeatureCollection", features: expanded },
+      });
+    }
+
+    if (!map.getLayer(`${id}-extruded`)) {
+      map.addLayer({
+        id: `${id}-extruded`,
+        type: "fill-extrusion",
+        source: expandedSourceId,
+        paint: {
+          "fill-extrusion-color": paint["circle-color"] || "#888",
+          "fill-extrusion-height": ["get", "extrusionHeight"],
+          "fill-extrusion-base": ["get", "extrusionBase"],
+          "fill-extrusion-opacity": 0.8,
+          "fill-extrusion-emissive-strength": 1.5
+        },
+        minzoom: 15,
+        maxzoom: 24,
       });
     }
   }
 
-  // Remove layer and source from the map
-  private static removeLayer(map: mapboxgl.Map, id: string) {
-    if (map.getLayer(id)) {
-      map.removeLayer(id);
+  static restoreAllLayers(map: mapboxgl.Map, isDark: boolean) {
+    const datasetRanks = datasets
+      .map(d => ({ id: d.id, size: d.data.features.length }))
+      .sort((a, b) => b.size - a.size)
+      .map((d, i) => ({ id: d.id, level: i }));
+
+    for (const { id, data } of datasets) {
+      const level = datasetRanks.find(r => r.id === id)?.level || 0;
+      this.addClusterAndExpandedLayers(map, id, data, {
+        "circle-color": this.getColorForId(id)
+      }, level);
     }
-    if (map.getSource(id)) {
-      map.removeSource(id);
-    }
   }
 
-  // Add all available datasets to the map
-  static restoreAllLayers(map: mapboxgl.Map) {
-    this.addShootings(map);
-    this.addAssaults(map);
-    this.addAutoThefts(map);
-    this.addBicycleThefts(map);
-    this.addHomicides(map);
-    this.addMotorThefts(map);
-    this.addRobberies(map);
-    this.addTheftsOver(map);
-  }
-
-  // Red lines appear on these methods due to typescript not understanding their type
-  // its fine
-
-  static addShootings(map: mapboxgl.Map) {
-    this.circleColor = "#ff0000"; // Red
-    this.circleOpacity = 1;
-    this.addLayer(map, "shootings", shootings);
-  }
-
-  static addAssaults(map: mapboxgl.Map) {
-    this.circleColor = "#e67300"; // Orange
-    this.addLayer(map, "assaults", assaults);
-  }
-
-  static addAutoThefts(map: mapboxgl.Map) {
-    this.circleColor = "#e600e6"; // Pink
-    this.addLayer(map, "auto_thefts", autoThefts);
-  }
-
-  static addBicycleThefts(map: mapboxgl.Map) {
-    this.circleColor = "#4dc3ff"; // Light Blue
-    this.addLayer(map, "bicycle_thefts", bicycleThefts);
-  }
-
-  static addHomicides(map: mapboxgl.Map) {
-    this.circleColor = "#000000"; // Black
-    this.addLayer(map, "homicides", homicides);
-  }
-
-  static addMotorThefts(map: mapboxgl.Map) {
-    this.circleColor = "#9900cc"; // Purple
-    this.addLayer(map, "motor_thefts", motorThefts);
-  }
-
-  static addRobberies(map: mapboxgl.Map) {
-    this.circleColor = "#006600"; // Green
-    this.addLayer(map, "robberies", robberies);
-  }
-
-  static addTheftsOver(map: mapboxgl.Map) {
-    this.circleColor = "#999900"; // Yellow
-    this.addLayer(map, "thefts_over_open", theftsOver);
+  private static getColorForId(id: string): string {
+    const colors: Record<string, string> = {
+      shootings: "#ff0000",
+      assaults: "#e67300",
+      auto_thefts: "#e600e6",
+      bicycle_thefts: "#4dc3ff",
+      homicides: "#000000",
+      motor_thefts: "#9900cc",
+      robberies: "#006600",
+      thefts_over_open: "#999900",
+    };
+    return colors[id] || "#777777";
   }
 }
