@@ -1,11 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Loader } from "@googlemaps/js-api-loader";
 import styles from "./InfoPanel.module.css";
 
 export interface InfoPanelProps {
     feature: {
         geometry: {
-            coordinates: [number, number]; // [longitude, latitude]
+            coordinates: [number, number]; // [lng, lat]
         };
         properties: {
             name: string;
@@ -23,23 +24,57 @@ export interface InfoPanelProps {
 export default function InfoPanel({ feature }: InfoPanelProps) {
     const { name, place_formatted, context } = feature.properties;
     const [hazardScore, setHazardScore] = useState<number | null>(null);
+    const [hasStreetView, setHasStreetView] = useState<boolean | null>(null);
+    const panoramaRef = useRef<HTMLDivElement>(null);
 
-    // simulate API fetch
+    const [lng, lat] = feature.geometry.coordinates;
+
+    // simulate API fetch for hazard score
     useEffect(() => {
         let mounted = true;
         setTimeout(() => {
-            if (!mounted) return;
-            setHazardScore(Math.floor(Math.random() * 101));
+            if (mounted) setHazardScore(Math.floor(Math.random() * 101));
         }, 1000);
         return () => { mounted = false; };
     }, []);
 
+    // initialize Google Street View Panorama if available
+    useEffect(() => {
+        if (!panoramaRef.current) return;
+        const loader = new Loader({
+            apiKey: process.env.NEXT_PUBLIC_GOOGLE_API_KEY || "",
+            version: "weekly",
+        });
+        loader.importLibrary("maps").then(() => {
+            const service = new google.maps.StreetViewService();
+            // search within 50m radius for panorama
+            service.getPanorama({ location: { lat, lng }, radius: 50 }, (data, status) => {
+                if (status === google.maps.StreetViewStatus.OK && data && data.location) {
+                    setHasStreetView(true);
+                    new google.maps.StreetViewPanorama(panoramaRef.current!, {
+                        pano: data.location.pano,
+                        pov: { heading: 210, pitch: 10 },
+                        zoom: 1,
+                        addressControl: false,
+                        linksControl: false,
+                        disableDefaultUI: true,
+                        controlSize: 20,
+                        fullscreenControl: true,
+                        motionTracking: false,
+                    });
+                } else {
+                    setHasStreetView(false);
+                }
+            });
+        });
+    }, [lat, lng]);
+
     const getHazardClass = () => {
         if (hazardScore === null) return styles.hazardBadgeLoading;
-        if (hazardScore >= 75) return styles.hazardHigh;
-        if (hazardScore >= 50) return styles.hazardMedium;
-        if (hazardScore >= 25) return styles.hazardLow;
-        return styles.hazardVeryLow;
+        if (hazardScore >= 75)     return styles.hazardHigh;
+        if (hazardScore >= 50)     return styles.hazardMedium;
+        if (hazardScore >= 25)     return styles.hazardLow;
+        return                        styles.hazardVeryLow;
     };
 
     return (
@@ -47,30 +82,26 @@ export default function InfoPanel({ feature }: InfoPanelProps) {
             <div className={styles.infoBox}>
                 <h3 className={styles.infoTitle}>{name}</h3>
                 <p className={styles.infoPlace}>{place_formatted}</p>
-                <hr className={styles.divider}/>
+                <hr className={styles.divider} />
 
                 <ul className={styles.contextList}>
                     {context.neighborhood && <li><strong>Neighborhood:</strong> {context.neighborhood.name}</li>}
-                    {context.locality && <li><strong>Locality:</strong> {context.locality.name}</li>}
-                    {context.region && <li><strong>Region:</strong> {context.region.name}</li>}
-                    {context.country && <li><strong>Country:</strong> {context.country.name}</li>}
+                    {context.locality     && <li><strong>Locality:</strong> {context.locality.name}</li>}
+                    {context.region       && <li><strong>Region:</strong> {context.region.name}</li>}
+                    {context.country      && <li><strong>Country:</strong> {context.country.name}</li>}
                 </ul>
 
-                <div className={styles.streetViewWrapper}>
-                    <iframe
-                        width="100%"
-                        height="200"
-                        src={`https://www.google.com/maps/embed/v1/streetview?key=${process.env.NEXT_PUBLIC_GOOGLE_API_KEY}` +
-                            `&location=${feature.geometry.coordinates[1]},${feature.geometry.coordinates[0]}` +
-                            `&heading=210&pitch=10&fov=80`}
-                        allowFullScreen
-                    />
-                </div>
+                {/* Street View or fallback */}
+                {hasStreetView === false ? (
+                    <div className={styles.noStreetView}>
+                        Street View not available for this location.
+                    </div>
+                ) : <div ref={panoramaRef} className={styles.streetViewWrapper}/>}
+
 
                 <div className={styles.hazardBadgeWrapper}>
-                    {/* STAR rating label on the left */}
-                    <span className={styles.hazardLabel}>HAZARD SCORE: </span>
-                    <div className={`${styles.hazardBadge} ${getHazardClass()}`}>
+                    <span className={styles.hazardLabel}>RISK</span>
+                    <div className={`${styles.hazardBadge} ${getHazardClass()} pop`}>
                         <span>{hazardScore === null ? "--" : hazardScore}</span>
                     </div>
                 </div>

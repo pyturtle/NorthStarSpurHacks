@@ -46,6 +46,14 @@ export default function Home() {
         accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
     });
 
+    const reset_marker = () => {
+        if (markerRef.current) {
+            markerRef.current.remove();
+        }
+        markerRef.current = null;
+        setSelectedLocation(null);
+    }
+
     // hydrate theme
     useLayoutEffect(() => {
         const stored = localStorage.getItem("northstar-dark-mode");
@@ -90,9 +98,7 @@ export default function Home() {
             // If there is a current marker remove it and set the location to null
             // Double click to remove marker
             if (markerRef.current){
-                markerRef.current.remove();
-                markerRef.current = null;
-                setSelectedLocation(null);
+                reset_marker();
                 return;
             }
 
@@ -154,7 +160,7 @@ export default function Home() {
             >
                 <button
                     className={styles.closeButton}
-                    onClick={() => setSelectedLocation(null)}
+                    onClick={() => reset_marker()}
                     aria-label="Close"
                 >
                     ×
@@ -168,7 +174,7 @@ export default function Home() {
                                 className={styles.actionButton}
                                 onClick={() => {
                                     setOrigin(selectedLocation.coords);
-                                    setSelectedLocation(null);
+                                    reset_marker();
                                 }}
                             >
                                 Set as Start
@@ -177,7 +183,7 @@ export default function Home() {
                                 className={styles.actionButton}
                                 onClick={() => {
                                     setDestination(selectedLocation.coords);
-                                    setSelectedLocation(null);
+                                    reset_marker();
                                 }}
                             >
                                 Set as End
