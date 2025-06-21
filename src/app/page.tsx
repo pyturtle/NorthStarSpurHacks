@@ -12,7 +12,7 @@ export default function Home() {
 
     const [isDark, setIsDark] = useState(true);
 
-    // Custom Light and Dark mode Url
+    // Custom Light and Dark mode
     const darkStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc/draft";
     const lightStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c/draft";
 
