@@ -24,15 +24,6 @@
     top: 60px;
 }
 
-.goButton {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 20px;
-    z-index: 1;
-}
-
 .toggleButton {
     position: absolute;
     bottom: 20px;
@@ -153,11 +144,12 @@ Sidebar Styles
 INFO PANEL STYLES
 */
 
+
 .infoPanel {
     position:               absolute;
-    top:                    2.5%;
+    top:                    0;
     left:                   0;
-    height:                 95%;
+    height:                 100%;
     width:                  300px;
     border-top-right-radius:    16px;
     border-bottom-right-radius: 16px;
@@ -180,17 +172,6 @@ INFO PANEL STYLES
 
 .buttonGroup {
     margin-bottom: 12px;
-}
-
-
-.closeButton {
-    position:   absolute;
-    top:        8px;
-    right:      12px;
-    background: transparent;
-    border:     none;
-    font-size:  24px;
-    cursor:     pointer;
 }
 
 .actionButton {
