@@ -12,7 +12,7 @@
 .searchContainer {
     position: absolute;
     top: 10px;
-    left: 10px;
+    left: 40%;
     z-index: 1;
     width: 280px;
     padding: 8px;
@@ -56,13 +56,141 @@
     color: #000000;
 }
 
-
 .logo {
     position: absolute;
-    bottom: 10px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    width: 100px;
+    width: 150px;
     height: auto;
     z-index: 1;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 100px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/*
+Universal UI Styles
+*/
+
+.sidebar,
+.infoPanel {
+    background:           rgba(255, 255, 255, 0.2);
+    border:               1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter:      blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition:           transform 0.3s ease, background 0.3s ease;
+}
+
+
+
+/*
+Sidebar Styles
+*/
+
+.sidebar {
+    position:                absolute;
+    top:                     20px;
+    right:                   0;
+    height:                  50%;
+    width:                   300px;
+    border-top-left-radius:    16px;
+    border-bottom-left-radius: 16px;
+    box-shadow:              -2px 0 8px rgba(0, 0, 0, 0.2);
+    transform:               translateX(100%);
+    z-index:                 2;
+    padding:                 16px;
+    overflow-y:              auto;
+    font-family:             'Work Sans', sans-serif;
+}
+
+.sidebarOpen {
+    transform: translateX(0);
+}
+
+.sidebarToggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: auto;
+    height: auto;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #60789B;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease, right 0.3s ease;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 16px;
+    font-family: 'Work Sans', sans-serif;
+    font-weight: 600;
+}
+
+.sidebarToggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.sidebarToggleOpen {
+    right: 310px;
+}
+
+.sidebarToggleOpen span {
+    display: none;
+}
+
+/*
+INFO PANEL STYLES
+*/
+
+.infoPanel {
+    position:               absolute;
+    top:                    2.5%;
+    left:                   0;
+    height:                 95%;
+    width:                  300px;
+    border-top-right-radius:    16px;
+    border-bottom-right-radius: 16px;
+    box-shadow:             2px 0 8px rgba(0, 0, 0, 0.2);
+    transform:              translateX(-100%);
+    z-index:                3;
+    padding:                16px;
+    overflow-y:             auto;
+    font-family:            'Work Sans', sans-serif;
+}
+
+.infoPanelOpen {
+    transform: translateX(0);
+}
+
+.closeButton {
+    position:   absolute;
+    top:        8px;
+    right:      12px;
+    background: transparent;
+    border:     none;
+    font-size:  24px;
+    cursor:     pointer;
+}
+
+.actionButton {
+    display:       inline-block;
+    margin-top:    12px;
+    margin-right:  8px;
+    background:    #007AFF;
+    color:         #fff;
+    border:        none;
+    border-radius: 4px;
+    padding:       8px 12px;
+    cursor:        pointer;
 }

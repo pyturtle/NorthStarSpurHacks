@@ -1,19 +1,30 @@
 "use client";
-import mapboxgl from 'mapbox-gl';
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import Image from 'next/image';
+import { GeocodingCore } from "@mapbox/search-js-core";
+import mapboxgl from 'mapbox-gl';
+import { MapSettingsSidebar } from "@/components/MapSettings";
+import {MapSearchBox} from "@/components/MapSearchBox";
 import { IconContext } from "react-icons";
 import { IoMoon } from "react-icons/io5";
-import {MapSearchBox} from "@/components/MapSearchBox";
 import NorthStarLogo from '@/public/NorthStarLogo.svg'
+import Image from 'next/image';
 import styles from "./page.module.css";
+import InfoPanel from "@/components/InfoPanel";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 export default function Home() {
+    // Ref to hold the map container and map instance
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map>(null);
 
+    // State to hold selected location from map click
+    const [selectedLocation, setSelectedLocation] = useState<{
+        coords: [number,number];
+        feature: any;
+    } | null>(null);
+
+    // State to manage map readiness and origin/destination coordinates
     const [mapReady, setMapReady]       = useState(false);
     const [origin, setOrigin]           = useState<[number, number] | null>(null);
     const [destination, setDestination] = useState<[number, number] | null>(null);
@@ -21,8 +32,13 @@ export default function Home() {
     const [isDark, setIsDark] = useState(true);
 
     // Custom Light and Dark mode Url
-    const darkStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc/draft";
-    const lightStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c/draft";
+    const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
+    const lightStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc";
+
+    // Initialize the GeocodingCore with Mapbox access token
+    const geocoder = new GeocodingCore({
+        accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+    });
 
     // hydrate theme
     useLayoutEffect(() => {
@@ -56,6 +72,29 @@ export default function Home() {
             minZoom: 11,
             maxZoom: 20
         });
+
+        mapRef.current.on("click", async (e) => {
+            const lng = e.lngLat.lng;
+            const lat = e.lngLat.lat;
+            const response = await geocoder.reverse(e.lngLat, {
+                types: new Set([
+                    "address",
+                    "street",
+                    "place",
+                    "neighborhood"
+                ]),
+                limit: 1,
+            });
+
+            const feat = response.features?.[0];
+            if (feat) {
+                setSelectedLocation({
+                    coords: [lng, lat] as [number, number],
+                    feature: feat
+                });
+            }
+        });
+
         setMapReady(true);
         return () => mapRef.current?.remove();
     }, []);
@@ -66,8 +105,48 @@ export default function Home() {
 
     return (
         <div className={styles.pageWrapper}>
-            <div ref={mapContainer} className={styles.mapContainer}/>
+            <MapSettingsSidebar/>
 
+            <aside
+                className={`${styles.infoPanel} ${
+                    selectedLocation ? styles.infoPanelOpen : ""
+                }`}
+            >
+                <button
+                    className={styles.closeButton}
+                    onClick={() => setSelectedLocation(null)}
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+
+                {selectedLocation && (
+                    <>
+                        <button
+                            className={styles.actionButton}
+                            onClick={() => {
+                                setOrigin(selectedLocation.coords);
+                                setSelectedLocation(null);
+                            }}
+                        >
+                            Set as Start
+                        </button>
+                        <button
+                            className={styles.actionButton}
+                            onClick={() => {
+                                setDestination(selectedLocation.coords);
+                                setSelectedLocation(null);
+                            }}
+                        >
+                            Set as End
+                        </button>
+                        <InfoPanel feature={selectedLocation.feature} />
+                    </>
+
+                )}
+            </aside>
+
+            <div ref={mapContainer} className={styles.mapContainer}/>
             {mapReady && (
                 <>
                     <div className={styles.searchContainer}>

@@ -2,6 +2,7 @@
 import React, {useState} from "react";
 import mapboxgl from "mapbox-gl";
 import dynamic from "next/dynamic";
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Dynamically import the SearchBox so it only runs in the browser
 const SearchBox = dynamic(
@@ -18,7 +19,7 @@ interface Props {
 }
 
 export function MapSearchBox({ map, placeholder, onRetrieve }: Props) {
-    const [inputValue, setInputValue] = useState("");
+    const [inputValue, setInputValue] = useState<string>("");
     if (!map) return null;
     const theme = {
         variables: {
