@@ -1,16 +1,21 @@
 import mapboxgl from "mapbox-gl";
 
 // Import your datasets
-import shootings from "@/public/layer-data/shootings 2023-2025.json";
+import shootings from "@/public/layer-data/shootings.json";
 // import stabbings from "@/public/layer-data/stabbings.json"; // example: another dataset
 
 export class MapLayers {
-  private static commonPaint: mapboxgl.CircleLayerSpecification['paint'] = {
-    "circle-radius": 8,
-    "circle-color": "#ff0000",
-    "circle-opacity": 0.7,
-    "circle-stroke-color": "#000000",
-  };
+  static circleColor: string = "#ff0000"
+  static circleOpacity: number = 0.7
+
+  private static get commonPaint(): mapboxgl.CircleLayerSpecification['paint'] {
+    return {
+      "circle-radius": 8,
+      "circle-color": this.circleColor,
+      "circle-opacity": this.circleOpacity,
+      "circle-stroke-color": "#000000",
+    };
+  }
 
   private static addLayer(
     map: mapboxgl.Map,
@@ -50,12 +55,17 @@ export class MapLayers {
 
   }
 
+  // Red lines appear on these methods due to typescript not understanding their type
+  // its fine
   static addShootings(map: mapboxgl.Map) {
     this.addLayer(map, "shootings", shootings);
+    this.circleColor = "#0000ff"
+    this.circleOpacity = 1
   }
 
   static addAssaults(map: mapboxgl.Map) {
     this.addLayer(map, "assaults", assaults);
+    this.circleColor = "#0000ff"
   }
 
 }
