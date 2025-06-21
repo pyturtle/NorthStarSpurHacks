@@ -69,12 +69,12 @@ Universal UI Styles
 
 .sidebar,
 .infoPanel {
-    background:           rgba(255, 255, 255, 0.2);
-    border:               1px solid rgba(255, 255, 255, 0.3);
-    backdrop-filter:      blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    transition:           transform 0.3s ease, background 0.3s ease;
+    background: rgba(255, 255, 255, 0.2); /* Increased opacity */
+    border: 1px solid #ccc;                /* Less transparent border */
+    color: #111;                           /* Darker text for contrast */
+    backdrop-filter: blur(6px);            /* Optional: reduce blur */
 }
+
 
 
 
@@ -86,7 +86,7 @@ Sidebar Styles
     position:                absolute;
     top:                     20px;
     right:                   0;
-    height:                  50%;
+    height:                  55%;
     width:                   300px;
     border-top-left-radius:    16px;
     border-bottom-left-radius: 16px;
