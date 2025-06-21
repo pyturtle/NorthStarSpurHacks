@@ -1,8 +1,12 @@
 "use client";
 import mapboxgl from 'mapbox-gl';
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import Image from 'next/image';
 import { IconContext } from "react-icons";
 import { IoMoon } from "react-icons/io5";
+import {MapSearchBox} from "@/components/MapSearchBox";
+import NorthStarLogo from '@/public/NorthStarLogo.svg'
+import styles from "./page.module.css";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
@@ -10,13 +14,17 @@ export default function Home() {
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map>(null);
 
+    const [mapReady, setMapReady]       = useState(false);
+    const [origin, setOrigin]           = useState<[number, number] | null>(null);
+    const [destination, setDestination] = useState<[number, number] | null>(null);
+
     const [isDark, setIsDark] = useState(true);
 
-    // Custom Light and Dark mode
+    // Custom Light and Dark mode Url
     const darkStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc/draft";
     const lightStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c/draft";
 
-    // Initialize map
+    // hydrate theme
     useLayoutEffect(() => {
         const stored = localStorage.getItem("northstar-dark-mode");
         if (stored !== null) {
@@ -48,9 +56,7 @@ export default function Home() {
             minZoom: 11,
             maxZoom: 20
         });
-
-        // mapRef.current.fitBounds(bounds, { padding: 20, duration: 0 });
-
+        setMapReady(true);
         return () => mapRef.current?.remove();
     }, []);
 
@@ -59,31 +65,56 @@ export default function Home() {
     };
 
     return (
-        <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
-            <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
+        <div className={styles.pageWrapper}>
+            <div ref={mapContainer} className={styles.mapContainer}/>
+
+            {mapReady && (
+                <>
+                    <div className={styles.searchContainer}>
+                        <MapSearchBox
+                            map={mapRef.current}
+                            placeholder="Start address"
+                            onRetrieve={(coords) => setOrigin(coords)}
+                        />
+                    </div>
+                    <div className={`${styles.searchContainer} ${styles.searchContainerEnd}`}>
+                        <MapSearchBox
+                            map={mapRef.current}
+                            placeholder="End address"
+                            onRetrieve={(coords) => setDestination(coords)}
+                        />
+                    </div>
+                </>
+            )}
+
+            {/*<button*/}
+            {/*    disabled={!origin || !destination}*/}
+            {/*    onClick={() => console.log({origin, destination})}*/}
+            {/*    className={styles.goButton}*/}
+            {/*>*/}
+            {/*    Go*/}
+            {/*</button>*/}
 
             <button
                 onClick={toggleStyle}
-                style={{
-                    position:   'absolute',
-                    bottom:     '20px',
-                    right:      '20px',
-                    background: isDark ? '#1e1e1e' : '#ffffff',
-                    border:     'none',
-                    borderRadius: '50%',
-                    padding:    '12px',
-                    boxShadow:  '0 4px 12px rgba(0,0,0,0.3)',
-                    cursor:     'pointer',
-                    transition: 'all 0.3s ease'
-                }}
+                className={`${styles.toggleButton} ${isDark ? styles.darkToggle : styles.lightToggle}`}
             >
-                <IconContext.Provider value={{
-                    color: isDark ? "#ffffff" : "#000000",
-                    size:  "20px"
-                }}>
-                    <IoMoon />
+                <IconContext.Provider
+                    value={{
+                        color: isDark ? "#ffffff" : "#000000",
+                        size: "20px",
+                    }}
+                >
+                    <IoMoon/>
                 </IconContext.Provider>
             </button>
+            <Image
+                src={NorthStarLogo}
+                alt="NorthStar Logo"
+                width={100}
+                height={100}
+                className={styles.logo}
+            />
         </div>
     );
 }
