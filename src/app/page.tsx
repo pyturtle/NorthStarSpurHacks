@@ -115,6 +115,7 @@ export default function Home() {
             });
 
             const feat = response.features?.[0];
+            console.log(JSON.stringify(feat, null, 2));
 
             if (feat) {
                 setSelectedLocation({

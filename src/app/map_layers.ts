@@ -1,7 +1,7 @@
 import mapboxgl from "mapbox-gl";
 
 // Import your datasets
-import shootings from "@/public/layer-data/shootings.json";
+import shootings from "@/public/layer-data/shootings 2023-2025.json";
 // import stabbings from "@/public/layer-data/stabbings.json"; // example: another dataset
 
 export class MapLayers {

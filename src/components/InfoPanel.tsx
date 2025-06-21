@@ -4,6 +4,9 @@ import styles from "./InfoPanel.module.css";
 
 export interface InfoPanelProps {
     feature: {
+        geometry: {
+            coordinates: [number, number]; // [longitude, latitude]
+        };
         properties: {
             name: string;
             place_formatted: string;
@@ -44,14 +47,25 @@ export default function InfoPanel({ feature }: InfoPanelProps) {
             <div className={styles.infoBox}>
                 <h3 className={styles.infoTitle}>{name}</h3>
                 <p className={styles.infoPlace}>{place_formatted}</p>
-                <hr className={styles.divider} />
+                <hr className={styles.divider}/>
 
                 <ul className={styles.contextList}>
                     {context.neighborhood && <li><strong>Neighborhood:</strong> {context.neighborhood.name}</li>}
-                    {context.locality     && <li><strong>Locality:</strong> {context.locality.name}</li>}
-                    {context.region       && <li><strong>Region:</strong> {context.region.name}</li>}
-                    {context.country      && <li><strong>Country:</strong> {context.country.name}</li>}
+                    {context.locality && <li><strong>Locality:</strong> {context.locality.name}</li>}
+                    {context.region && <li><strong>Region:</strong> {context.region.name}</li>}
+                    {context.country && <li><strong>Country:</strong> {context.country.name}</li>}
                 </ul>
+
+                <div className={styles.streetViewWrapper}>
+                    <iframe
+                        width="100%"
+                        height="200"
+                        src={`https://www.google.com/maps/embed/v1/streetview?key=${process.env.NEXT_PUBLIC_GOOGLE_API_KEY}` +
+                            `&location=${feature.geometry.coordinates[1]},${feature.geometry.coordinates[0]}` +
+                            `&heading=210&pitch=10&fov=80`}
+                        allowFullScreen
+                    />
+                </div>
 
                 <div className={styles.hazardBadgeWrapper}>
                     {/* STAR rating label on the left */}
