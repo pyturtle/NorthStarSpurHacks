@@ -7,6 +7,7 @@ import {MapSearchBox} from "@/components/MapSearchBox";
 import { IconContext } from "react-icons";
 import { IoMoon } from "react-icons/io5";
 import NorthStarLogo from '@/public/NorthStarLogo.svg'
+import { MapLayers } from "@/app/map_layers";
 import Image from 'next/image';
 import styles from "./page.module.css";
 import InfoPanel from "@/components/InfoPanel";
@@ -56,6 +57,13 @@ export default function Home() {
                 ? darkStyle
                 : lightStyle
         );
+        const map = mapRef.current;
+        if (!map) return;
+
+        map.once("style.load", () => {
+            MapLayers.restoreAllLayers(map);
+        });
+
     }, [isDark]);
 
     useEffect(() => {
@@ -110,6 +118,11 @@ export default function Home() {
                     feature: feat
                 });
             }
+        });
+
+        // initialize layers
+        mapRef.current.on("load", () => {
+            MapLayers.addShootings(mapRef.current!);
         });
 
         setMapReady(true);
