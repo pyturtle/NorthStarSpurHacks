@@ -158,17 +158,9 @@ export default function Home() {
                     selectedLocation ? styles.infoPanelOpen : ""
                 }`}
             >
-                <button
-                    className={styles.closeButton}
-                    onClick={() => reset_marker()}
-                    aria-label="Close"
-                >
-                    ×
-                </button>
-
                 {selectedLocation && (
                     <>
-
+                        <InfoPanel feature={selectedLocation.feature}/>
                         <div className={styles.buttonGroup}>
                             <button
                                 className={styles.actionButton}
@@ -189,9 +181,6 @@ export default function Home() {
                                 Set as End
                             </button>
                         </div>
-
-                        <InfoPanel feature={selectedLocation.feature}/>
-
                     </>
 
                 )}
@@ -216,14 +205,6 @@ export default function Home() {
                     </div>
                 </>
             )}
-
-            {/*<button*/}
-            {/*    disabled={!origin || !destination}*/}
-            {/*    onClick={() => console.log({origin, destination})}*/}
-            {/*    className={styles.goButton}*/}
-            {/*>*/}
-            {/*    Go*/}
-            {/*</button>*/}
 
             <button
                 onClick={toggleStyle}
