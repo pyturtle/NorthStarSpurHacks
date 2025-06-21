@@ -69,10 +69,10 @@ Universal UI Styles
 
 .sidebar,
 .infoPanel {
-    background: rgba(255, 255, 255, 0.2); /* Increased opacity */
-    border: 1px solid #ccc;                /* Less transparent border */
-    color: #111;                           /* Darker text for contrast */
-    backdrop-filter: blur(6px);            /* Optional: reduce blur */
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #111;
+    backdrop-filter: blur(10px);
 }
 
 
