@@ -10,6 +10,8 @@ import NorthStarLogo from '@/public/NorthStarLogo.svg'
 import Image from 'next/image';
 import styles from "./page.module.css";
 import InfoPanel from "@/components/InfoPanel";
+import TransportModeSelector from "@/components/TransportModeSelector";
+
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
@@ -31,6 +33,8 @@ export default function Home() {
     const [destination, setDestination] = useState<[number, number] | null>(null);
 
     const [isDark, setIsDark] = useState(true);
+
+    const [transportMode, setTransportMode] = useState<'walk' | 'bike' | 'car'>("walk");
 
     // Custom Light and Dark mode Url
     const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
@@ -122,6 +126,11 @@ export default function Home() {
 
     return (
         <div className={styles.pageWrapper}>
+            <TransportModeSelector
+                transportMode={transportMode}
+                setTransportMode={setTransportMode}
+            />
+            
             <MapSettingsSidebar/>
 
             <aside
