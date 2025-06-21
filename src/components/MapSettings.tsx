@@ -10,15 +10,14 @@ export function MapSettingsSidebar() {
   const [open, setOpen] = useState(false);
   const [showCrimeOptions, setShowCrimeOptions] = useState(false);
 
-  return (
-    <>
-      <button
-        className={`${styles.sidebarToggle} ${open ? styles.sidebarToggleOpen : ""}`}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <Image src={NorthStarIcon} alt="Settings" width={32} height={32} />
-        <span>Settings</span>
-      </button>
+    return (
+        <>
+            <button
+                className={`${styles.sidebarToggle} ${open ? styles.sidebarToggleOpen : ""}`}
+                onClick={() => setOpen(o => !o)}
+            >
+                <Image src={NorthStarIcon} alt="Settings" width={32} height={32}/>
+            </button>
 
       <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
         <h2>Map Settings</h2>
