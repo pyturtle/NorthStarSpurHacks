@@ -103,7 +103,7 @@ export default function Home() {
             });
 
             const feat = response.features?.[0];
-            console.log(JSON.stringify(feat, null, 2));
+
             if (feat) {
                 setSelectedLocation({
                     coords: [lng, lat] as [number, number],
@@ -139,6 +139,7 @@ export default function Home() {
 
                 {selectedLocation && (
                     <>
+
                         <div className={styles.buttonGroup}>
                             <button
                                 className={styles.actionButton}
@@ -161,6 +162,7 @@ export default function Home() {
                         </div>
 
                         <InfoPanel feature={selectedLocation.feature}/>
+
                     </>
 
                 )}

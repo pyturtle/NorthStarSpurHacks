@@ -177,9 +177,11 @@ INFO PANEL STYLES
     transform: translateX(0);
 }
 
+
 .buttonGroup {
     margin-bottom: 12px;
 }
+
 
 .closeButton {
     position:   absolute;
@@ -202,5 +204,4 @@ INFO PANEL STYLES
     padding:       8px 12px;
     cursor:        pointer;
 }
-
 

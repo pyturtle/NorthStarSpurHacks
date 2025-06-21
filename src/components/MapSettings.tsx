@@ -21,6 +21,7 @@ export function MapSettingsSidebar() {
             <aside
                 className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}
             >
+
                 <h2>Map Settings Working on it </h2>
                 {/*TODO add controls*/}
                 <div>
