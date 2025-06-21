@@ -1,12 +1,11 @@
-import React from "react";
-
-import styles from "../app/page.module.css";
+"use client";
+import React, { useEffect, useState } from "react";
+import styles from "./InfoPanel.module.css";
 
 export interface InfoPanelProps {
     feature: {
         properties: {
             name: string;
-            full_address: string;
             place_formatted: string;
             context: {
                 neighborhood?: { name: string };
@@ -19,62 +18,48 @@ export interface InfoPanelProps {
 }
 
 export default function InfoPanel({ feature }: InfoPanelProps) {
-    const {
-        name,
-        full_address,
-        place_formatted,
-        context,
-    } = feature.properties;
+    const { name, place_formatted, context } = feature.properties;
+    const [hazardScore, setHazardScore] = useState<number | null>(null);
+
+    // simulate API fetch
+    useEffect(() => {
+        let mounted = true;
+        setTimeout(() => {
+            if (!mounted) return;
+            setHazardScore(Math.floor(Math.random() * 101));
+        }, 1000);
+        return () => { mounted = false; };
+    }, []);
+
+    const getHazardClass = () => {
+        if (hazardScore === null) return styles.hazardBadgeLoading;
+        if (hazardScore >= 75) return styles.hazardHigh;
+        if (hazardScore >= 50) return styles.hazardMedium;
+        if (hazardScore >= 25) return styles.hazardLow;
+        return styles.hazardVeryLow;
+    };
 
     return (
         <div className={styles.infoContent}>
-            <div style={{
-                background: 'rgba(255, 255, 255, 0.85)',
-                padding: '16px',
-                borderRadius: '8px'
-            }}>
-                {/* Title */}
-                <h3 style={{
-                    margin: '0 0 8px',
-                    color: '#111',
-                    fontSize: '1.2rem',
-                    fontWeight: 600,
-                }}>{name}</h3>
-                <p style={{
-                    margin: '0 0 12px',
-                    color: '#333',
-                    fontSize: '.9rem',
-                }}>{place_formatted}</p>
+            <div className={styles.infoBox}>
+                <h3 className={styles.infoTitle}>{name}</h3>
+                <p className={styles.infoPlace}>{place_formatted}</p>
+                <hr className={styles.divider} />
 
-                {/* Divider */}
-                <hr style={{
-                    border: 'none',
-                    borderTop: '1px solid #ddd',
-                    margin: '8px 0'
-                }} />
-
-                {/* Context list */}
-                <ul style={{
-                    listStyle: 'none',
-                    padding: 0,
-                    margin: 0,
-                    color: '#444',
-                    fontSize: '0.85rem',
-                    lineHeight: 1.4
-                }}>
-                    {context.neighborhood && (
-                        <li><strong>Neighborhood:</strong> {context.neighborhood.name}</li>
-                    )}
-                    {context.locality && (
-                        <li><strong>Locality:</strong> {context.locality.name}</li>
-                    )}
-                    {context.region && (
-                        <li><strong>Region:</strong> {context.region.name}</li>
-                    )}
-                    {context.country && (
-                        <li><strong>Country:</strong> {context.country.name}</li>
-                    )}
+                <ul className={styles.contextList}>
+                    {context.neighborhood && <li><strong>Neighborhood:</strong> {context.neighborhood.name}</li>}
+                    {context.locality     && <li><strong>Locality:</strong> {context.locality.name}</li>}
+                    {context.region       && <li><strong>Region:</strong> {context.region.name}</li>}
+                    {context.country      && <li><strong>Country:</strong> {context.country.name}</li>}
                 </ul>
+
+                <div className={styles.hazardBadgeWrapper}>
+                    {/* STAR rating label on the left */}
+                    <span className={styles.hazardLabel}>HAZARD SCORE: </span>
+                    <div className={`${styles.hazardBadge} ${getHazardClass()}`}>
+                        <span>{hazardScore === null ? "--" : hazardScore}</span>
+                    </div>
+                </div>
             </div>
         </div>
     );
