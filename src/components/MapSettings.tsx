@@ -28,13 +28,30 @@ export function MapSettingsSidebar() {
                     <label>
                         <input type="checkbox"/> Show crime heatmap
                     </label>
+                    <div style={{ marginLeft: "24px", marginTop: "4px" }}>
+                        <label>
+                            <input type="checkbox" /> Walk: 300m
+                        </label>
+                        <br />
+                        <label>
+                            <input type="checkbox" /> Bike: 500m
+                        </label>
+                        <br />
+                        <label>
+                            <input type="checkbox" /> Car: 1000m
+                        </label>
+                    </div>
                 </div>
                 <div>
                     <label>
                         <input type="checkbox"/> Night mode weighting
                     </label>
                 </div>
-                {/* …etc */}
+                <div>
+                    <label>
+                        <input type="checkbox"/> Satellite map
+                    </label>
+                </div>
             </aside>
         </>
     );

@@ -1,10 +1,8 @@
 "use client";
 
 import React from "react";
-import styles from "../app/page.module.css";
-import { FaWalking } from "react-icons/fa";
+import { FaWalking, FaCar } from "react-icons/fa";
 import { MdDirectionsBike } from "react-icons/md";
-import { FaCar } from "react-icons/fa";
 
 type TransportMode = 'walk' | 'bike' | 'car';
 
@@ -26,51 +24,45 @@ export default function TransportModeSelector({ transportMode, setTransportMode 
     background: "rgba(255, 255, 255, 0.2)",
     backdropFilter: "blur(10px)",
     color: "#000",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
   });
 
   return (
     <div
       style={{
         position: "absolute",
-        bottom: "10px",
-        right: "100px",
+        bottom: "20px",      // adjust height from bottom
+        right: "10%",        // somewhere between center and right
         zIndex: 2,
         display: "flex",
-        gap: "12px",
-        background: "rgba(255, 255, 255, 0.1)",
-        padding: "10px 12px",
-        borderRadius: "16px",
-        backdropFilter: "blur(6px)",
+        gap: "12px",         // spacing between buttons
       }}
     >
       <button
-  style={buttonStyle(isSelected("walk"))}
-  onClick={() => setTransportMode("walk")}
->
-  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-    <FaWalking />
-    <span>Walk</span>
-  </span>
-</button>
+        style={buttonStyle(transportMode === "walk")}
+        onClick={() => setTransportMode("walk")}
+      >
+        <FaWalking />
+        <span>Walk</span>
+      </button>
 
-<button
-  style={buttonStyle(isSelected("bike"))}
-  onClick={() => setTransportMode("bike")}
->
-  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-    <MdDirectionsBike />
-    <span>Bike</span>
-  </span>
-</button>
       <button
-  style={buttonStyle(isSelected("car"))}
-  onClick={() => setTransportMode("car")}
->
-  <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-    <FaCar />
-    <span>Car</span>
-  </span>
-</button>
+        style={buttonStyle(transportMode === "bike")}
+        onClick={() => setTransportMode("bike")}
+      >
+        <MdDirectionsBike />
+        <span>Bike</span>
+      </button>
+
+      <button
+        style={buttonStyle(transportMode === "car")}
+        onClick={() => setTransportMode("car")}
+      >
+        <FaCar />
+        <span>Car</span>
+      </button>
     </div>
   );
 }
