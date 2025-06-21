@@ -15,7 +15,6 @@ export function MapSettingsSidebar() {
                 onClick={() => setOpen(o => !o)}
             >
                 <Image src={NorthStarIcon} alt="Settings" width={32} height={32}/>
-                <span>Settings</span>
             </button>
 
             <aside

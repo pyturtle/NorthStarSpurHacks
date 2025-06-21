@@ -1,0 +1,110 @@
+.infoContent {}
+
+.infoBox {
+    background: rgba(255, 255, 255, 0.85);
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.infoTitle {
+    margin: 0 0 8px;
+    color: #111;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.infoPlace {
+    margin: 0 0 12px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.divider {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 8px 0;
+}
+
+.contextList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    color: #444;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.hazardBadgeWrapper {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start; /* label then badge */
+}
+
+/* Badge base: fixed circle with transitions on color only */
+.hazardBadge {
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    border-radius: 50%;
+    display: inline-block;
+    font-weight: 600;
+    opacity: 1;
+    transition: background-color 0.5s ease, color 0.5s ease;
+    text-align: center;
+}
+
+/* Loading state: grey circle */
+.hazardBadgeLoading {
+    background: #ccc;
+    color: #333;
+}
+
+/* Risk colors: high score = more risk */
+.hazardHigh {
+    background: #f44336;
+    color: #fff;
+}
+
+.hazardMedium {
+    background: #ff9800;
+    color: #fff;
+}
+
+.hazardLow {
+    background: #ffeb3b;
+    color: #333;
+}
+
+.hazardVeryLow {
+    background: #4caf50;
+    color: #000;
+}
+
+/* Text fade-in animation */
+@keyframes fadeInText {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.hazardBadge span {
+    display: inline-block;
+    opacity: 0;
+    animation: fadeInText 0.5s ease-out forwards;
+}
+
+.hazardLabel {
+    margin-right: 12px;
+    width: 148px;
+    height: 48px;
+    line-height: 48px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border-radius: 16px;
+    display: inline-block;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+
