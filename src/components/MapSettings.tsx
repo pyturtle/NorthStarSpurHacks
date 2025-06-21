@@ -8,7 +8,6 @@ import { FaCarCrash, FaMapMarkedAlt } from "react-icons/fa";
 import { GiCarDoor, GiFist, GiChalkOutlineMurder } from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
 import { ReactNode } from "react";
-import Dotmap from "@/public/icons/dotmap-preview.png"
 
 // Reusable toggle switch
 function Toggle({
@@ -85,18 +84,23 @@ export function MapSettingsSidebar() {
   const toggleLayer = (key: keyof typeof layers) =>
     setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const styleButton = (key: "heatmap" | "dots" | "alt", label: string, image: string) => (
+  const styleButton = (
+    key: "heatmap" | "dots" | "alt",
+    label: string,
+    image: string
+  ) => (
     <button
+      key={key}
       onClick={() => setMapStyle(key)}
       style={{
-        width: "72px",
-        height: "90px",
+        width: "80px",
+        height: "80px",
         borderRadius: "12px",
         border: mapStyle === key ? "2px solid #007AFF" : "1px solid #ccc",
         overflow: "hidden",
         padding: 0,
         position: "relative",
-        backgroundImage: Dotmap,
+        backgroundImage: `url(${image})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         display: "flex",
@@ -107,7 +111,10 @@ export function MapSettingsSidebar() {
         fontWeight: 600,
         fontSize: "0.75rem",
         cursor: "pointer",
+        transition: "transform 0.2s ease",
       }}
+      onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+      onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1.0)")}
     >
       <div
         style={{
@@ -132,7 +139,9 @@ export function MapSettingsSidebar() {
       </button>
 
       <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
-        <h1><b>Map Settings</b></h1>
+        <h1>
+          <b>Map Settings</b>
+        </h1>
 
         {/* Crime layer toggles */}
         <div style={{ marginTop: "12px" }}>
