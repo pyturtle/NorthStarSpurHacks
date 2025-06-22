@@ -10,15 +10,15 @@ import robberies from "@/public/layer-data/robberies_2023-2025.json";
 import theftsOver from "@/public/layer-data/thefts over open_2023-2025.json";
 
 // All datasets to be visualized
-const datasets = [
-  { id: "shootings", data: shootings },
-  { id: "assaults", data: assaults },
-  { id: "auto_thefts", data: autoThefts },
-  { id: "bicycle_thefts", data: bicycleThefts },
-  { id: "homicides", data: homicides },
-  { id: "motor_thefts", data: motorThefts },
-  { id: "robberies", data: robberies },
-  { id: "thefts_over_open", data: theftsOver }
+export const datasets = [
+  { id: "shootings", data: shootings, enabled: false },
+  { id: "assaults", data: assaults, enabled: false },
+  { id: "auto_thefts", data: autoThefts, enabled: false },
+  { id: "bicycle_thefts", data: bicycleThefts, enabled: false },
+  { id: "homicides", data: homicides, enabled: false },
+  { id: "motor_thefts", data: motorThefts, enabled: false },
+  { id: "robberies", data: robberies, enabled: false },
+  { id: "thefts_over_open", data: theftsOver, enabled: false }
 ];
 
 export class MapLayers {
@@ -166,16 +166,35 @@ export class MapLayers {
    * Add all datasets to the map with proper extrusion and coloring by theme.
    */
   static restoreAllLayers(map: mapboxgl.Map, isDark: boolean) {
-    const datasetRanks = datasets
+    const enabledDatasets = datasets.filter(d => d.enabled);
+  
+    const datasetRanks = enabledDatasets
       .map(d => ({ id: d.id, size: d.data.features.length }))
       .sort((a, b) => b.size - a.size)
       .map((d, i) => ({ id: d.id, level: i }));
-
-    for (const { id, data } of datasets) {
+  
+    for (const { id, data } of enabledDatasets) {
       const level = datasetRanks.find(r => r.id === id)?.level || 0;
       this.addClusterAndExpandedLayers(map, id, data, {
         "circle-color": this.getColorForId(id, isDark)
       }, level);
+    }
+  }
+
+  static removeLayersForId(map: mapboxgl.Map, id: string) {
+    const layers = [`${id}-cluster`, `${id}-extruded`];
+    const sources = [`${id}-cluster`, `${id}-extruded`];
+  
+    for (const layerId of layers) {
+      if (map.getLayer(layerId)) {
+        map.removeLayer(layerId);
+      }
+    }
+  
+    for (const sourceId of sources) {
+      if (map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+      }
     }
   }
 
