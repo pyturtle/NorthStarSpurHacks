@@ -91,7 +91,8 @@ export class MapLayers {
     id: string,
     data: GeoJSON.FeatureCollection,
     paint: mapboxgl.FillExtrusionLayerSpecification["paint"],
-    level: number
+    level: number,
+    bool: false
   ) {
     const grouped = this.groupFeaturesByLocation(data);
     const clustered: GeoJSON.Feature[] = [];
