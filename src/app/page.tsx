@@ -267,7 +267,7 @@ export default function Home() {
                 className={styles.logo}
             />
 
-            <CrimeLegend />
+            <CrimeLegend isDark={isDark} />
         </div>
   );
 }
