@@ -16,10 +16,12 @@ interface Props {
     map: mapboxgl.Map | null;
     placeholder: string;
     onRetrieve: (coords: [number, number], feature: any) => void;
+    inputValue: string;
+    setInputValue: (value: string) => void;
+    setCoordinate: (coords: [number, number] | null) => void;
 }
 
-export function MapSearchBox({ map, placeholder, onRetrieve }: Props) {
-    const [inputValue, setInputValue] = useState<string>("");
+export function MapSearchBox({ map, placeholder, onRetrieve, inputValue, setInputValue, setCoordinate }: Props) {
     if (!map) return null;
     const theme = {
         variables: {
@@ -53,6 +55,7 @@ export function MapSearchBox({ map, placeholder, onRetrieve }: Props) {
             value={inputValue}
             onChange={(d) => {
                 setInputValue(d);
+                setCoordinate(null)
             }}
             marker={true}
             placeholder={placeholder}
