@@ -1,15 +1,15 @@
 "use client";
-import {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GeocodingCore } from "@mapbox/search-js-core";
-import mapboxgl from 'mapbox-gl';
+import mapboxgl from "mapbox-gl";
 import { MapSettingsSidebar } from "@/components/MapSettings";
-import {MapSearchBox} from "@/components/MapSearchBox";
+import { MapSearchBox } from "@/components/MapSearchBox";
 import { IconContext } from "react-icons";
 import { IoMoon } from "react-icons/io5";
 import { FaArrowUp } from "react-icons/fa";
-import NorthStarLogo from '@/public/NorthStarLogo.svg'
+import NorthStarLogo from "@/public/NorthStarLogo.svg";
 import { MapLayers } from "@/app/map_layers";
-import Image from 'next/image';
+import Image from "next/image";
 import styles from "./page.module.css";
 import InfoPanel from "@/components/InfoPanel";
 import TransportModeSelector from "@/components/TransportModeSelector";
@@ -29,22 +29,21 @@ export default function Home() {
     const [endCoordinates, setEndCoordinates] = useState<[number, number] | null>(null);
 
 
-    // State to hold selected location from map click
-    const [selectedLocation, setSelectedLocation] = useState<{
-        coords: [number,number];
-        feature: any;
-    } | null>(null);
+  // State to hold selected location from map click
+  const [selectedLocation, setSelectedLocation] = useState<{
+    coords: [number, number];
+    feature: any;
+  } | null>(null);
 
     // State to manage map readiness and origin/destination coordinates
     const [mapReady, setMapReady]       = useState(false);
 
-    const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(true);
+  const [transportMode, setTransportMode] = useState<"walk" | "bike" | "car">("walk");
 
-    const [transportMode, setTransportMode] = useState<'walk' | 'bike' | 'car'>("walk");
-
-    // Custom Light and Dark mode Url
-    const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
-    const lightStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc";
+  // Custom Light and Dark mode Url
+  const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
+  const lightStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc";
 
     // Initialize the GeocodingCore with Mapbox access token
     const geocoder = new GeocodingCore({
@@ -59,45 +58,46 @@ export default function Home() {
         setSelectedLocation(null);
     }
 
-    // hydrate theme
-    useLayoutEffect(() => {
-        const stored = localStorage.getItem("northstar-dark-mode");
-        if (stored !== null) {
-            setIsDark(stored === "true");
-        }
-    }, []);
+  // hydrate theme from localStorage
+  useLayoutEffect(() => {
+    const stored = localStorage.getItem("northstar-dark-mode");
+    if (stored !== null) {
+      setIsDark(stored === "true");
+    }
+  }, []);
 
-    useEffect(() => {
-        localStorage.setItem("northstar-dark-mode", isDark.toString());
-        mapRef.current?.setStyle(
-            isDark
-                ? darkStyle
-                : lightStyle
-        );
-        const map = mapRef.current;
-        if (!map) return;
+  // update map style and restore layers when dark mode changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
 
-        map.once("style.load", () => {
-            MapLayers.restoreAllLayers(map);
-        });
+    localStorage.setItem("northstar-dark-mode", isDark.toString());
 
-    }, [isDark]);
+    // when the new style loads, restore all layers
+    map.once("style.load", () => {
+      MapLayers.restoreAllLayers(map, isDark); // re-add all crime layers with theme-aware styling
+    });
 
-    useEffect(() => {
-        const bounds = new mapboxgl.LngLatBounds(
-            [-79.603709, 43.576155],
-            [-79.132967, 43.878211]
-        );
+    // switch style (this triggers 'style.load')
+    map.setStyle(isDark ? darkStyle : lightStyle);
+  }, [isDark]);
 
-        mapRef.current = new mapboxgl.Map({
-            container: mapContainer.current!,
-            style: isDark ? darkStyle : lightStyle,
-            zoom: 12,
-            center: [-79.380970, 43.645490],
-            maxBounds: bounds,
-            minZoom: 11,
-            maxZoom: 20
-        });
+  useEffect(() => {
+    const bounds = new mapboxgl.LngLatBounds(
+      [-79.603709, 43.576155],
+      [-79.132967, 43.878211]
+    );
+
+    // initialize the map
+    mapRef.current = new mapboxgl.Map({
+      container: mapContainer.current!,
+      style: isDark ? darkStyle : lightStyle,
+      zoom: 12,
+      center: [-79.38097, 43.64549],
+      maxBounds: bounds,
+      minZoom: 11,
+      maxZoom: 20,
+    });
 
         mapRef.current.on("click", async (e) => {
             // If there is a current marker remove it and set the location to null
@@ -107,23 +107,18 @@ export default function Home() {
                 return;
             }
 
-            // Create a new marker at the clicked location
-            const lng = e.lngLat.lng;
-            const lat = e.lngLat.lat;
-            markerRef.current = new mapboxgl.Marker({ color: "#007AFF" })
-                .setLngLat([lng, lat])
-                .addTo(mapRef.current!);
+      // Create a new marker at the clicked location
+      const lng = e.lngLat.lng;
+      const lat = e.lngLat.lat;
+      markerRef.current = new mapboxgl.Marker({ color: "#007AFF" })
+        .setLngLat([lng, lat])
+        .addTo(mapRef.current!);
 
-            // Reverse geocode the clicked location to get address details
-            const response = await geocoder.reverse(e.lngLat, {
-                types: new Set([
-                    "address",
-                    "street",
-                    "place",
-                    "neighborhood"
-                ]),
-                limit: 1,
-            });
+      // Reverse geocode the clicked location to get address details
+      const response = await geocoder.reverse(e.lngLat, {
+        types: new Set(["address", "street", "place", "neighborhood"]),
+        limit: 1,
+      });
 
             const feat = response.features?.[0];
             console.log(JSON.stringify(feat, null, 2));
@@ -136,18 +131,19 @@ export default function Home() {
             }
         });
 
-        // initialize layers
-        mapRef.current.on("load", () => {
-            MapLayers.addShootings(mapRef.current!);
-        });
+    // initialize layers on first load
+    mapRef.current.on("load", () => {
+      MapLayers.restoreAllLayers(mapRef.current!, isDark); // load all datasets with brightness depending on theme
+    });
 
-        setMapReady(true);
-        return () => mapRef.current?.remove();
-    }, []);
+    setMapReady(true);
+    return () => mapRef.current?.remove();
+  }, []);
 
-    const toggleStyle = () => {
-        setIsDark(d => !d);
-    };
+  // toggle dark/light mode
+  const toggleStyle = () => {
+    setIsDark((d) => !d);
+  };
 
     return (
         <div className={styles.pageWrapper}>
@@ -246,26 +242,29 @@ export default function Home() {
                 </div>
             )}
 
-            <button
-                onClick={toggleStyle}
-                className={`${styles.toggleButton} ${isDark ? styles.darkToggle : styles.lightToggle}`}
-            >
-                <IconContext.Provider
-                    value={{
-                        color: isDark ? "#ffffff" : "#000000",
-                        size: "20px",
-                    }}
-                >
-                    <IoMoon/>
-                </IconContext.Provider>
-            </button>
-            <Image
-                src={NorthStarLogo}
-                alt="NorthStar Logo"
-                width={100}
-                height={100}
-                className={styles.logo}
-            />
-        </div>
-    );
+      <button
+        onClick={toggleStyle}
+        className={`${styles.toggleButton} ${
+          isDark ? styles.darkToggle : styles.lightToggle
+        }`}
+      >
+        <IconContext.Provider
+          value={{
+            color: isDark ? "#ffffff" : "#000000",
+            size: "20px",
+          }}
+        >
+          <IoMoon />
+        </IconContext.Provider>
+      </button>
+
+      <Image
+        src={NorthStarLogo}
+        alt="NorthStar Logo"
+        width={100}
+        height={100}
+        className={styles.logo}
+      />
+    </div>
+  );
 }
