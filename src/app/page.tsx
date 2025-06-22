@@ -6,12 +6,14 @@ import { MapSettingsSidebar } from "@/components/MapSettings";
 import {MapSearchBox} from "@/components/MapSearchBox";
 import { IconContext } from "react-icons";
 import { IoMoon } from "react-icons/io5";
+import { FaArrowUp } from "react-icons/fa";
 import NorthStarLogo from '@/public/NorthStarLogo.svg'
 import { MapLayers } from "@/app/map_layers";
 import Image from 'next/image';
 import styles from "./page.module.css";
 import InfoPanel from "@/components/InfoPanel";
 import TransportModeSelector from "@/components/TransportModeSelector";
+import { IoMdSwap } from "react-icons/io";
 
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -21,6 +23,11 @@ export default function Home() {
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map>(null);
     const markerRef = useRef<mapboxgl.Marker | null>(null);
+    const [startAddress, setStartAddress] = useState("");
+    const [endAddress, setEndAddress] = useState("");
+    const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(null);
+    const [endCoordinates, setEndCoordinates] = useState<[number, number] | null>(null);
+
 
     // State to hold selected location from map click
     const [selectedLocation, setSelectedLocation] = useState<{
@@ -30,8 +37,6 @@ export default function Home() {
 
     // State to manage map readiness and origin/destination coordinates
     const [mapReady, setMapReady]       = useState(false);
-    const [origin, setOrigin]           = useState<[number, number] | null>(null);
-    const [destination, setDestination] = useState<[number, number] | null>(null);
 
     const [isDark, setIsDark] = useState(true);
 
@@ -150,60 +155,95 @@ export default function Home() {
                 transportMode={transportMode}
                 setTransportMode={setTransportMode}
             />
-            
+
             <MapSettingsSidebar/>
 
-            <aside
-                className={`${styles.infoPanel} ${
-                    selectedLocation ? styles.infoPanelOpen : ""
-                }`}
-            >
+            <aside className={`${styles.infoPanel} ${
+                selectedLocation ? styles.infoPanelOpen : ""
+            }`}>
                 {selectedLocation && (
                     <>
                         <InfoPanel feature={selectedLocation.feature}/>
+
                         <div className={styles.buttonGroup}>
+                            {/* Primary action toggles between Set/Replace Origin */}
                             <button
                                 className={styles.actionButton}
                                 onClick={() => {
-                                    setOrigin(selectedLocation.coords);
+                                    setStartCoordinates(selectedLocation.coords);
+                                    setStartAddress(selectedLocation.feature.properties.name);
                                     reset_marker();
                                 }}
                             >
-                                Set as Start
+                                Set as Start <FaArrowUp />
                             </button>
+
                             <button
                                 className={styles.actionButton}
                                 onClick={() => {
-                                    setDestination(selectedLocation.coords);
+                                    setEndCoordinates(selectedLocation.coords);
+                                    setEndAddress(selectedLocation.feature.properties.name);
                                     reset_marker();
                                 }}
                             >
-                                Set as End
+                                Set as End <FaArrowUp />
                             </button>
                         </div>
                     </>
-
                 )}
             </aside>
 
             <div ref={mapContainer} className={styles.mapContainer}/>
             {mapReady && (
-                <>
+                <div className={styles.searchRow}>
                     <div className={styles.searchContainer}>
                         <MapSearchBox
                             map={mapRef.current}
                             placeholder="Start address"
-                            onRetrieve={(coords) => setOrigin(coords)}
+                            onRetrieve={(coords) => {
+                                setStartCoordinates(coords);
+                            }}
+                            inputValue={startAddress}
+                            setInputValue={setStartAddress}
+                            setCoordinate={setStartCoordinates}
                         />
+                    </div>
+                    <div className={styles.swapContainer}>
+                        <button
+                            className={styles.swapButton}
+                            onClick={() => {
+                                const startA = startAddress;
+                                const endA = endAddress;
+                                const startC = startCoordinates;
+                                const endC = endCoordinates;
+                                setEndCoordinates(startC);
+                                setStartCoordinates(endC);
+                                setEndAddress(startA);
+                                setStartAddress(endA);
+
+                            }}
+                        >
+                            <IconContext value={{
+                                color: "#000000",
+                                size: "20px",
+                            }}>
+                                <IoMdSwap/>
+                            </IconContext>
+                        </button>
                     </div>
                     <div className={`${styles.searchContainer} ${styles.searchContainerEnd}`}>
                         <MapSearchBox
                             map={mapRef.current}
                             placeholder="End address"
-                            onRetrieve={(coords) => setDestination(coords)}
+                            onRetrieve={(coords) => {
+                                setEndCoordinates(coords);
+                            }}
+                            inputValue={endAddress}
+                            setInputValue={setEndAddress}
+                            setCoordinate={setEndCoordinates}
                         />
                     </div>
-                </>
+                </div>
             )}
 
             <button
