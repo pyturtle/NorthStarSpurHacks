@@ -8,6 +8,7 @@ import { FaCarCrash, FaMapMarkedAlt } from "react-icons/fa";
 import { GiCarDoor, GiFist, GiChalkOutlineMurder } from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
 import { ReactNode } from "react";
+import { MapLayers } from "@/app/map_layers";
 
 // Reusable toggle switch
 function Toggle({
@@ -68,7 +69,7 @@ export function MapSettingsSidebar() {
   const [open, setOpen] = useState(false);
 
   const [layers, setLayers] = useState({
-    shootings: true,
+    shootings: false,
     homicides: false,
     assaults: false,
     autoThefts: false,
