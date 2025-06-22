@@ -9,6 +9,7 @@ import motorThefts from "@/public/layer-data/motor thefts_2023-2025.json";
 import robberies from "@/public/layer-data/robberies_2023-2025.json";
 import theftsOver from "@/public/layer-data/thefts over open_2023-2025.json";
 
+// All datasets to be visualized
 const datasets = [
   { id: "shootings", data: shootings },
   { id: "assaults", data: assaults },
@@ -21,6 +22,9 @@ const datasets = [
 ];
 
 export class MapLayers {
+  /**
+   * Group features that share the same lat/lng coordinate.
+   */
   private static groupFeaturesByLocation(
     data: GeoJSON.FeatureCollection
   ): Map<string, GeoJSON.Feature[]> {
@@ -35,53 +39,53 @@ export class MapLayers {
   }
 
   /**
-   * Spread overlapping features vertically using polygon extrusions (for real 3D tower rendering).
-   * Each point becomes a small square polygon with a height set via level.
-   * Longest section is on the ground, next section stacks on top, and so on (tallest at base).
+   * Create a single bar (extruded polygon) placed in a grid layout around a center.
+   * Each bar represents the count of incidents at a location for a dataset.
    */
-  private static spreadFeatures(
-    features: GeoJSON.Feature[],
+  private static buildBarSegment(
     center: [number, number],
-    level: number
-  ): GeoJSON.Feature[] {
-    const towerBase = 0.00003;
+    index: number,
+    total: number,
+    count: number,
+    color: string
+  ): GeoJSON.Feature {
+    const barWidth = 0.00003;
+    const spacing = 0.00007;
 
-    const sorted = [...features];
-    sorted.sort((a, b) => JSON.stringify(b).length - JSON.stringify(a).length);
+    const gridSize = Math.ceil(Math.sqrt(total));
+    const row = Math.floor(index / gridSize);
+    const col = index % gridSize;
 
-    let currentBase = 0;
-    return sorted.map((feat, i) => {
-      const height = 20;
-      const base = currentBase;
-      currentBase += height;
+    const dx = (col - (gridSize - 1) / 2) * spacing;
+    const dy = (row - (gridSize - 1) / 2) * spacing;
 
-      const [lng, lat] = center;
-      const dx = towerBase;
-      const dy = towerBase;
+    const [lng, lat] = center;
+    const lngOffset = lng + dx;
+    const latOffset = lat + dy;
 
-      const polygon: GeoJSON.Feature = {
-        type: "Feature",
-        geometry: {
-          type: "Polygon",
-          coordinates: [[
-            [lng - dx, lat - dy],
-            [lng + dx, lat - dy],
-            [lng + dx, lat + dy],
-            [lng - dx, lat + dy],
-            [lng - dx, lat - dy]
-          ]]
-        },
-        properties: {
-          ...(feat.properties || {}),
-          extrusionHeight: height,
-          extrusionBase: base
-        }
-      };
-
-      return polygon;
-    });
+    return {
+      type: "Feature",
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [lngOffset - barWidth, latOffset - barWidth],
+          [lngOffset + barWidth, latOffset - barWidth],
+          [lngOffset + barWidth, latOffset + barWidth],
+          [lngOffset - barWidth, latOffset + barWidth],
+          [lngOffset - barWidth, latOffset - barWidth]
+        ]]
+      },
+      properties: {
+        extrusionHeight: count * 5, // bar height proportional to frequency
+        extrusionBase: 0,
+        color: color
+      }
+    };
   }
 
+  /**
+   * Add clustered points and expanded extruded bars to map.
+   */
   private static addClusterAndExpandedLayers(
     map: mapboxgl.Map,
     id: string,
@@ -95,13 +99,16 @@ export class MapLayers {
 
     grouped.forEach((group, key) => {
       const [lng, lat] = key.split(",").map(Number);
-      if (group.length === 1) {
-        clustered.push(group[0]);
-        expanded.push(group[0]);
-      } else {
-        clustered.push({ ...group[0], geometry: { type: "Point", coordinates: [lng, lat] } });
-        expanded.push(...this.spreadFeatures(group, [lng, lat], level));
-      }
+      clustered.push({ ...group[0], geometry: { type: "Point", coordinates: [lng, lat] } });
+      expanded.push(
+        this.buildBarSegment(
+          [lng, lat],
+          level,
+          datasets.length,
+          group.length,
+          paint["circle-color"] as string
+        )
+      );
     });
 
     const clusterSourceId = `${id}-cluster`;
@@ -143,7 +150,7 @@ export class MapLayers {
         type: "fill-extrusion",
         source: expandedSourceId,
         paint: {
-          "fill-extrusion-color": paint["circle-color"] || "#888",
+          "fill-extrusion-color": ["get", "color"],
           "fill-extrusion-height": ["get", "extrusionHeight"],
           "fill-extrusion-base": ["get", "extrusionBase"],
           "fill-extrusion-opacity": 0.8,
@@ -155,6 +162,9 @@ export class MapLayers {
     }
   }
 
+  /**
+   * Add all datasets to the map with proper extrusion and coloring by theme.
+   */
   static restoreAllLayers(map: mapboxgl.Map, isDark: boolean) {
     const datasetRanks = datasets
       .map(d => ({ id: d.id, size: d.data.features.length }))
@@ -164,13 +174,16 @@ export class MapLayers {
     for (const { id, data } of datasets) {
       const level = datasetRanks.find(r => r.id === id)?.level || 0;
       this.addClusterAndExpandedLayers(map, id, data, {
-        "circle-color": this.getColorForId(id)
+        "circle-color": this.getColorForId(id, isDark)
       }, level);
     }
   }
 
-  private static getColorForId(id: string): string {
-    const colors: Record<string, string> = {
+  /**
+   * Return color per dataset based on light/dark mode.
+   */
+  private static getColorForId(id: string, isDark: boolean): string {
+    const darkColors: Record<string, string> = {
       shootings: "#ff0000",
       assaults: "#e67300",
       auto_thefts: "#e600e6",
@@ -178,8 +191,20 @@ export class MapLayers {
       homicides: "#000000",
       motor_thefts: "#9900cc",
       robberies: "#006600",
-      thefts_over_open: "#999900",
+      thefts_over_open: "#ffcc00",
     };
-    return colors[id] || "#777777";
+
+    const lightColors: Record<string, string> = {
+      shootings: "#ff3333",
+      assaults: "#ff9933",
+      auto_thefts: "#ff66ff",
+      bicycle_thefts: "#66d9ff",
+      homicides: "#333333",
+      motor_thefts: "#cc66ff",
+      robberies: "#00b300",
+      thefts_over_open: "#ffd700",
+    };
+
+    return (isDark ? darkColors : lightColors)[id] || "#777777";
   }
 }

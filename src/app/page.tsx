@@ -61,7 +61,7 @@ export default function Home() {
 
     // when the new style loads, restore all layers
     map.once("style.load", () => {
-      MapLayers.restoreAllLayers(map, isDark); // ✅ re-add all crime layers with theme-aware styling
+      MapLayers.restoreAllLayers(map, isDark); // re-add all crime layers with theme-aware styling
     });
 
     // switch style (this triggers 'style.load')
@@ -120,7 +120,7 @@ export default function Home() {
 
     // initialize layers on first load
     mapRef.current.on("load", () => {
-      MapLayers.restoreAllLayers(mapRef.current!, isDark); // ✅ load all datasets with brightness depending on theme
+      MapLayers.restoreAllLayers(mapRef.current!, isDark); // load all datasets with brightness depending on theme
     });
 
     setMapReady(true);
