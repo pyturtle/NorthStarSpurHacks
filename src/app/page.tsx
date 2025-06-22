@@ -1,4 +1,6 @@
 "use client";
+import axios from "axios";
+import { length, along, circle, booleanPointInPolygon } from "@turf/turf";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GeocodingCore } from "@mapbox/search-js-core";
 import mapboxgl from "mapbox-gl";
@@ -23,6 +25,9 @@ export default function Home() {
     const mapContainer = useRef<HTMLDivElement>(null);
     const mapRef = useRef<mapboxgl.Map>(null);
     const markerRef = useRef<mapboxgl.Marker | null>(null);
+    const startMarkerRef = useRef<mapboxgl.Marker | null>(null);
+    const endMarkerRef = useRef<mapboxgl.Marker | null>(null);
+    // const mapRoute = useState<>(null)
     const [startAddress, setStartAddress] = useState("");
     const [endAddress, setEndAddress] = useState("");
     const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(null);
@@ -39,7 +44,7 @@ export default function Home() {
     const [mapReady, setMapReady]       = useState(false);
 
     const [isDark, setIsDark] = useState(true);
-    const [transportMode, setTransportMode] = useState<"walk" | "bike" | "car">("walk");
+    const [transportMode, setTransportMode] = useState<"walking" | "cycling" | "driving-traffic">("walking");
 
   // Custom Light and Dark mode Url
     const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
@@ -140,10 +145,103 @@ export default function Home() {
         return () => mapRef.current?.remove();
     }, []);
 
+    // Update marker for start coordinate
+    useEffect(() => {
+        if (!mapRef.current) return;
+        // remove old marker
+        startMarkerRef.current?.remove();
+
+        if (startCoordinates) {
+            // add a new one
+            startMarkerRef.current = new mapboxgl.Marker({ color: "green" })
+                .setLngLat(startCoordinates)
+                .addTo(mapRef.current);
+        }
+    }, [startCoordinates]);
+
+    // when endCoordinates changes, update the end marker
+    useEffect(() => {
+        if (!mapRef.current) return;
+        // remove old marker
+        endMarkerRef.current?.remove();
+
+        if (endCoordinates) {
+            // add a new one
+            endMarkerRef.current = new mapboxgl.Marker({ color: "red" })
+                .setLngLat(endCoordinates)
+                .addTo(mapRef.current);
+        }
+    }, [endCoordinates]);
+
+    // Always ready to load the path
     useEffect(() => {
         if (!mapReady || !startCoordinates || !endCoordinates) return;
         const map = mapRef.current!;
+        (async () => {
+            const coordStr = `${startCoordinates[0]},${startCoordinates[1]};` +
+                `${endCoordinates[0]},${endCoordinates[1]}`;
+            // 2. Fetch alternative routes
+            const { data } = await axios.get(
+                `https://api.mapbox.com/directions/v5/mapbox/${transportMode}/${coordStr}`, {
+                    params: {
+                        alternatives: true,
+                        overview: "full",
+                        geometries:   "geojson",
+                        access_token: mapboxgl.accessToken,
+                    }
+                }
+            );
+            const routes: Array<{ geometry: GeoJSON.LineString }> = data.routes;
 
+            // 3. Clear any previous route layers
+            if (routes.length > 0) {
+                const r = routes[0];
+                const id = `route0`;
+
+                map.getStyle().layers
+                    .filter(l => l.id.startsWith("route"))
+                    .forEach(l => {
+                        if (map.getLayer(l.id))  map.removeLayer(l.id);
+                        if (map.getSource(l.id)) map.removeSource(l.id);
+                    });
+
+                // find the first symbol layer to insert above it
+                const topLayerId = map.getStyle().layers?.find(l => l.type === "symbol")?.id;
+
+                map.addSource(id, {
+                    type: "geojson",
+                    data: r.geometry,
+                    lineMetrics: true
+                });
+
+                map.addLayer(
+                    {
+                        id,
+                        type: "line",
+                        source: id,
+                        layout: {
+                            "line-cap":  "round",
+                            "line-join": "round"
+                        },
+                        paint: {
+                            "line-gradient": [
+                                "interpolate",
+                                ["linear"],
+                                ["line-progress"],
+                                0,   "#1E90FF",
+                                0.5, "#00D4FF",
+                                1,   "#1E90FF"
+                            ],
+
+                            "line-width":   5,
+                            "line-opacity": .9,
+                            "line-emissive-strength": 1
+                        }
+                    },
+                    topLayerId
+                );
+            }
+        })();
     }, [mapReady, startCoordinates, endCoordinates, transportMode]);
 
 
