@@ -1,44 +1,45 @@
+// src/app/api/safety/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
-import { getDistance } from "geolib";
-import shootings from "@/public/layer-data/shootings 2023-2025.json"; // Make sure this path matches your setup
+import { loadCrimeData } from "@/components/loadCrimeData";
+import { calculateRiskScore } from "@/components/calcRiskScore";
 
-const RADIUS_METERS = 500;
-const DAYS_WINDOW = 30;
-const WEIGHT = 2;
+let crimeDataCache: ReturnType<typeof loadCrimeData> | null = null;
 
-export async function POST(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { lat, lng } = await req.json();
+    const url = new URL(request.url);
+    const lat = Number(url.searchParams.get("lat"));
+    const lng = Number(url.searchParams.get("lng"));
 
-    if (typeof lat !== "number" || typeof lng !== "number") {
-      return NextResponse.json({ error: "Invalid coordinates" }, { status: 400 });
+    if (
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      return NextResponse.json(
+        { error: "Invalid or missing 'lat' or 'lng' query parameters" },
+        { status: 400 }
+      );
     }
 
-    const now = new Date();
-    const threshold = new Date(now);
-    threshold.setDate(now.getDate() - DAYS_WINDOW);
+    // Load crime data once and cache it
+    if (!crimeDataCache) {
+      crimeDataCache = loadCrimeData();
+    }
 
-    const nearby = shootings.features.filter((incident: any) => {
-      const date = new Date(incident.properties.OCC_DATE);
-      if (date < threshold) return false;
+    // Calculate risk score
+    const riskScore = calculateRiskScore(lat, lng, crimeDataCache);
 
-      const dist = getDistance(
-        { latitude: lat, longitude: lng },
-        {
-          latitude: incident.geometry.coordinates[1],
-          longitude: incident.geometry.coordinates[0],
-        }
-      );
-
-      return dist <= RADIUS_METERS;
-    });
-
-    const count = nearby.length;
-    const score = Math.max(0, 100 - count * WEIGHT);
-
-    return NextResponse.json({ score, count });
+    return NextResponse.json({ riskScore });
   } catch (error) {
-    console.error("Safety API error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    console.error("Error in /api/safety:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
