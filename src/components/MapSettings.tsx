@@ -1,43 +1,37 @@
 "use client";
-import React, {ReactNode, useState} from "react";
+import React, { ReactNode, useState } from "react";
 import styles from "../app/page.module.css";
 import Image from "next/image";
 import NorthStarIcon from "@/public/NorthStarIcon.svg";
-import {
-  FaDollarSign,
-  FaGun,
-  FaMask
-} from "react-icons/fa6";
+
+// React icons
+import { FaDollarSign, FaGun, FaMask } from "react-icons/fa6";
 import { FaCarCrash, FaMapMarkedAlt } from "react-icons/fa";
-import {
-  GiCarDoor,
-  GiFist,
-  GiChalkOutlineMurder
-} from "react-icons/gi";
+import { GiCarDoor, GiFist, GiChalkOutlineMurder } from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
 import { MapLayers, datasets } from "@/app/map_layers";
 
+// All toggleable crime types — make sure keys match `datasets` ids
 const CRIME_LAYERS = [
   { key: "shootings", label: "Shootings", icon: <FaGun />, color: "#ff3333" },
   { key: "homicides", label: "Homicides", icon: <GiChalkOutlineMurder />, color: "#333333" },
   { key: "assaults", label: "Assaults", icon: <GiFist />, color: "#ff9933" },
-  { key: "autoThefts", label: "Auto Thefts", icon: <GiCarDoor />, color: "#ff66ff" },
-  { key: "bicycleThefts", label: "Bicycle Thefts", icon: <GrBike />, color: "#66d9ff" },
+  { key: "auto_thefts", label: "Auto Thefts", icon: <GiCarDoor />, color: "#ff66ff" },
+  { key: "bicycle_thefts", label: "Bicycle Thefts", icon: <GrBike />, color: "#66d9ff" },
   { key: "robberies", label: "Robberies", icon: <FaMask />, color: "#00b300" },
-  { key: "openData", label: "Open Data Thefts", icon: <FaDollarSign />, color: "#ffd700" },
-  { key: "motorThefts", label: "Motor Vehicle Thefts", icon: <FaCarCrash />, color: "#cc66ff" },
+  { key: "thefts_over_open", label: "Open Data Thefts", icon: <FaDollarSign />, color: "#ffd700" },
+  { key: "motor_thefts", label: "Motor Vehicle Thefts", icon: <FaCarCrash />, color: "#cc66ff" }
 ];
 
 interface CrimeLayerToggleProps {
-    label: string;
-    icon: ReactNode;
-    color: string;
-    selected: boolean;
-    onClick: () => void;
+  label: string;
+  icon: ReactNode;
+  color: string;
+  selected: boolean;
+  onClick: () => void;
 }
 
-
-
+// Sidebar toggle block for each crime type
 function CrimeLayerToggle({ label, icon, color, selected, onClick }: CrimeLayerToggleProps) {
   return (
     <div
@@ -71,52 +65,39 @@ function CrimeLayerToggle({ label, icon, color, selected, onClick }: CrimeLayerT
 }
 
 // @ts-ignore
-export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode }) {
+export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode, satellite, setSatellite }) {
   const [open, setOpen] = useState(false);
 
-  const [layers, setLayers] = useState({
-    shootings: false,
-    homicides: false,
-    assaults: false,
-    autoThefts: false,
-    bicycleThefts: false,
-    robberies: false,
-    openData: false,
-    motorThefts: false
+  // Track toggled crimes
+  const [layers, setLayers] = useState(() => {
+    const init: Record<string, boolean> = {};
+    CRIME_LAYERS.forEach(({ key }) => {
+      init[key] = false;
+    });
+    return init;
   });
 
-  const [satellite, setSatellite] = useState(false);
-    // @ts-ignore
+  // Toggle crime data layer and update MapLayers
+  // @ts-ignore
   const toggleLayer = (key) => {
     setLayers((prev) => {
-      // @ts-ignore
-        const newValue = !prev[key];
-      const datasetMap = {
-        shootings: "shootings",
-        homicides: "homicides",
-        assaults: "assaults",
-        autoThefts: "auto_thefts",
-        bicycleThefts: "bicycle_thefts",
-        robberies: "robberies",
-        openData: "thefts_over_open",
-        motorThefts: "motor_thefts"
-      };
-      // @ts-ignore
-        const datasetId = datasetMap[key];
-      const dataset = datasets.find((d) => d.id === datasetId);
+      const newValue = !prev[key];
+      const dataset = datasets.find((d) => d.id === key);
       if (dataset) dataset.enabled = newValue;
       if (map) {
         if (newValue) MapLayers.restoreAllLayers(map, isDark, visualizationMode);
-        else MapLayers.removeLayersForId(map, datasetId);
+        else MapLayers.removeLayersForId(map, key);
       }
       return { ...prev, [key]: newValue };
     });
   };
-    // @ts-ignore
+
+  // Render preview button for each visualization style
+  // @ts-ignore
   const styleButton = (key, label, image) => (
     <button
       key={key}
-      onClick={() => setVisualizationMode(key === "heatmap" ? "heatmap" : "dotmap")}
+      onClick={() => setVisualizationMode(key)}
       style={{
         width: "80px",
         height: "80px",
@@ -152,6 +133,7 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
 
   return (
     <>
+      {/* Floating settings button */}
       <button
         className={`${styles.sidebarToggle} ${open ? styles.sidebarToggleOpen : ""}`}
         onClick={() => setOpen((o) => !o)}
@@ -159,11 +141,13 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
         <Image src={"/NorthStarIcon.svg"} alt="Settings" width={32} height={32} />
       </button>
 
+      {/* Sidebar */}
       <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
         <h1 style={{ textAlign: "center", fontWeight: 700 }}>
           Map Settings (Click!)
         </h1>
 
+        {/* Crime layer toggles */}
         <div style={{ marginTop: "12px" }}>
           {CRIME_LAYERS.map(({ key, label, icon, color }) => (
             <CrimeLayerToggle
@@ -171,13 +155,14 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
               label={label}
               icon={icon}
               color={color}
-                // @ts-ignore
+              // @ts-ignore
               selected={layers[key]}
               onClick={() => toggleLayer(key)}
             />
           ))}
         </div>
 
+        {/* Satellite toggle */}
         <div style={{ marginTop: "16px" }}>
           <CrimeLayerToggle
             label="Satellite Map"
@@ -188,6 +173,7 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
           />
         </div>
 
+        {/* Map style selector */}
         <div style={{ marginTop: "24px" }}>
           <h2 style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "8px", textAlign: "center" }}>
             Map Visual Style
