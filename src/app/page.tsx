@@ -131,16 +131,10 @@ export default function Home() {
     if (!mapRef.current) return;
   
     const map = mapRef.current;
-  
+
     // Don't setStyle if satellite is ON
-    if (satellite) {
-      // Just adjust layers' paint properties
-      MapLayers.restoreAllLayers(map, isDark, visualizationMode);
-        if (activeRoute && activePins) {
-            restoreRouteAndPins(map, activeRoute, activePins);
-        }
-        return;
-    }
+    if (satellite) return;
+
   
     // When NOT satellite, just switch the style
     map.once("style.load", () => {
@@ -157,9 +151,6 @@ export default function Home() {
     if (!mapRef.current || !mapReady) return;
     localStorage.setItem("northstar-visualization-mode", visualizationMode);
     MapLayers.restoreAllLayers(mapRef.current, isDark, visualizationMode);
-      if (activeRoute && activePins) {
-          restoreRouteAndPins(mapRef.current, activeRoute, activePins);
-      }
   }, [visualizationMode]);
 
   // Initialize map instance and set click handler
@@ -222,18 +213,6 @@ export default function Home() {
           mapRef.current?.setPitch(60);
           mapRef.current?.setBearing(-30);
         }
-      
-        MapLayers.restoreAllLayers(mapRef.current!, isDark, visualizationMode);
-        if (activeRoute && activePins) {
-            restoreRouteAndPins(mapRef.current!, activeRoute, activePins);
-        }
-    });
-
-    mapRef.current.on("load", () => {
-      MapLayers.restoreAllLayers(mapRef.current!, isDark, visualizationMode);
-        if (activeRoute && activePins) {
-            restoreRouteAndPins(mapRef.current!, activeRoute, activePins);
-        }
     });
 
     setMapReady(true);
@@ -294,7 +273,7 @@ export default function Home() {
 
             // 2) Clear any old route or pin layers & sources
             map.getStyle().layers
-                .filter(l => l.id.startsWith("route") || l.id === "pins")
+                .filter(l => l.id.startsWith("route0") || l.id === "pins")
                 .forEach(l => {
                     if (map.getLayer(l.id))  map.removeLayer(l.id);
                     if (map.getSource(l.id)) map.removeSource(l.id);
