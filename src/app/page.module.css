@@ -24,6 +24,29 @@
     top: 60px;
 }
 
+.swapContainer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+}
+
+.swapButton {
+    background: var(--foreground);
+    color: var(--background);
+    border: none;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.swapButton:hover {
+    opacity: 0.9;
+}
+
 .toggleButton {
     position: absolute;
     bottom: 20px;
@@ -74,9 +97,6 @@ Universal UI Styles
     color: #111;
     backdrop-filter: blur(10px);
 }
-
-
-
 
 /*
 Sidebar Styles
@@ -147,9 +167,9 @@ INFO PANEL STYLES
 
 .infoPanel {
     position:               absolute;
-    top:                    0;
+    top:                    2.5%;
     left:                   0;
-    height:                 100%;
+    height:                 auto;
     width:                  300px;
     border-top-right-radius:    16px;
     border-bottom-right-radius: 16px;
@@ -169,20 +189,16 @@ INFO PANEL STYLES
     transform: translateX(0);
 }
 
-
-.buttonGroup {
-    margin-bottom: 12px;
-}
-
 .actionButton {
-    display:       inline-block;
-    margin-top:    12px;
-    margin-right:  8px;
-    background:    #007AFF;
-    color:         #fff;
-    border:        none;
-    border-radius: 4px;
-    padding:       8px 12px;
-    cursor:        pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    margin-right: 8px;
+    background: #007AFF;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
 }
-
