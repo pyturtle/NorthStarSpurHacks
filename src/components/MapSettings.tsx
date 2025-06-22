@@ -16,6 +16,7 @@ import {
 } from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
 import { ReactNode } from "react";
+import { MapLayers } from "@/app/map_layers";
 
 // Crime layer configuration with color-coding
 const CRIME_LAYERS = [
@@ -77,7 +78,7 @@ export function MapSettingsSidebar() {
   const [open, setOpen] = useState(false);
 
   const [layers, setLayers] = useState({
-    shootings: true,
+    shootings: false,
     homicides: false,
     assaults: false,
     autoThefts: false,

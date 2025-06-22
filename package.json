@@ -12,6 +12,8 @@
     "@googlemaps/js-api-loader": "^1.16.8",
     "@mapbox/mapbox-gl-geocoder": "^5.0.3",
     "@mapbox/search-js-react": "^1.1.0",
+    "@turf/turf": "^7.2.0",
+    "axios": "^1.10.0",
     "geolib": "^3.3.4",
     "mapbox-gl": "^3.13.0",
     "next": "15.3.4",
