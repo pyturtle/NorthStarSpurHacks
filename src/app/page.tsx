@@ -12,7 +12,7 @@ import Image from 'next/image';
 import styles from "./page.module.css";
 import InfoPanel from "@/components/InfoPanel";
 import TransportModeSelector from "@/components/TransportModeSelector";
-
+import CrimeLegend from "@/components/CrimeLegend";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
@@ -158,9 +158,17 @@ export default function Home() {
                     selectedLocation ? styles.infoPanelOpen : ""
                 }`}
             >
+                <button
+                    className={styles.closeButton}
+                    onClick={() => reset_marker()}
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+
                 {selectedLocation && (
                     <>
-                        <InfoPanel feature={selectedLocation.feature}/>
+
                         <div className={styles.buttonGroup}>
                             <button
                                 className={styles.actionButton}
@@ -181,6 +189,9 @@ export default function Home() {
                                 Set as End
                             </button>
                         </div>
+
+                        <InfoPanel feature={selectedLocation.feature}/>
+
                     </>
 
                 )}
@@ -206,6 +217,14 @@ export default function Home() {
                 </>
             )}
 
+            {/*<button*/}
+            {/*    disabled={!origin || !destination}*/}
+            {/*    onClick={() => console.log({origin, destination})}*/}
+            {/*    className={styles.goButton}*/}
+            {/*>*/}
+            {/*    Go*/}
+            {/*</button>*/}
+
             <button
                 onClick={toggleStyle}
                 className={`${styles.toggleButton} ${isDark ? styles.darkToggle : styles.lightToggle}`}
@@ -226,6 +245,7 @@ export default function Home() {
                 height={100}
                 className={styles.logo}
             />
+            <CrimeLegend isDark={isDark} />
         </div>
     );
 }
