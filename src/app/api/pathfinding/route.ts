@@ -5,17 +5,21 @@ import { length, along } from "@turf/turf";
 import { loadCrimeData } from "@/components/loadCrimeData";
 import { calculateRiskScore } from "@/components/calcRiskScore";
 
-const crimeData = loadCrimeData();  // warm cache on import
+const crimeData = await loadCrimeData();  // warm cache on import
 
-// Helper: sample every N meters along a LineString
 function sampleEvery(line: GeoJSON.LineString, interval = 50) {
-    const total = length(line, { units: "meters" });
+    const feature: GeoJSON.Feature<GeoJSON.LineString> = {
+        type: "Feature",
+        geometry: line,
+        properties: {}
+    };
+    const total = length(feature, { units: "meters" });
     const pts: [number, number][] = [];
     for (let d = 0; d <= total; d += interval) {
-        const coord = (along(line, d, { units: "meters" }).geometry
-            .coordinates as [number, number]);
-        pts.push(coord);
+        const point = along(feature, d, { units: "meters" }) as GeoJSON.Feature<GeoJSON.Point>;
+        pts.push(point.geometry.coordinates as [number, number]);
     }
+
     return pts;
 }
 

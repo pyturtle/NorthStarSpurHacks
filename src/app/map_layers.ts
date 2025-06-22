@@ -1,27 +1,31 @@
-import mapboxgl from "mapbox-gl";
-
-import shootings from "@/public/layer-data/shootings_2023-2025.json";
-import assaults from "@/public/layer-data/assaults_2023-2025.json";
-import autoThefts from "@/public/layer-data/auto thefts_2023-2025.json";
-import bicycleThefts from "@/public/layer-data/bicycle thefts_2023-2025.json";
-import homicides from "@/public/layer-data/homicides_2023-2025.json";
-import motorThefts from "@/public/layer-data/motor thefts_2023-2025.json";
-import robberies from "@/public/layer-data/robberies_2023-2025.json";
-import theftsOver from "@/public/layer-data/thefts over open_2023-2025.json";
-
+// Toggleable dataset definitions (no JSON imports!)
 export const datasets = [
-  { id: "shootings", data: shootings, enabled: false },
-  { id: "assaults", data: assaults, enabled: false },
-  { id: "auto_thefts", data: autoThefts, enabled: false },
-  { id: "bicycle_thefts", data: bicycleThefts, enabled: false },
-  { id: "homicides", data: homicides, enabled: false },
-  { id: "motor_thefts", data: motorThefts, enabled: false },
-  { id: "robberies", data: robberies, enabled: false },
-  { id: "thefts_over_open", data: theftsOver, enabled: false }
+  { id: "shootings",         enabled: false },
+  { id: "assaults",          enabled: false },
+  { id: "auto_thefts",       enabled: false },
+  { id: "bicycle_thefts",    enabled: false },
+  { id: "homicides",         enabled: false },
+  { id: "motor_thefts",      enabled: false },
+  { id: "robberies",         enabled: false },
+  { id: "thefts_over_open",  enabled: false },
 ];
 
+// Public URLs to static GeoJSON assets (served from /public/layer-data)
+const LAYER_URLS: Record<string, string> = {
+  shootings:         "/layer-data/shootings_2023-2025.json",
+  assaults:          "/layer-data/assaults_2023-2025.json",
+  auto_thefts:       "/layer-data/auto%20thefts_2023-2025.json",
+  bicycle_thefts:    "/layer-data/bicycle%20thefts_2023-2025.json",
+  homicides:         "/layer-data/homicides_2023-2025.json",
+  motor_thefts:      "/layer-data/motor%20thefts_2023-2025.json",
+  robberies:         "/layer-data/robberies_2023-2025.json",
+  thefts_over_open:  "/layer-data/thefts%20over%20open_2023-2025.json",
+};
+
+type FeatureCollection = GeoJSON.FeatureCollection<GeoJSON.Geometry, any>;
+
 export class MapLayers {
-  private static groupFeaturesByLocation(data: GeoJSON.FeatureCollection): Map<string, GeoJSON.Feature[]> {
+  private static groupFeaturesByLocation(data: FeatureCollection): Map<string, GeoJSON.Feature[]> {
     const map = new Map<string, GeoJSON.Feature[]>();
     for (const feat of data.features) {
       const [lng, lat] = (feat.geometry as any).coordinates;
@@ -34,12 +38,12 @@ export class MapLayers {
 
   private static buildBarSegment(center: [number, number], index: number, total: number, count: number, color: string): GeoJSON.Feature {
     const barWidth = 0.00003;
-    const spacing = 0.00007;
+    const spacing  = 0.00007;
     const gridSize = Math.ceil(Math.sqrt(total));
-    const row = Math.floor(index / gridSize);
-    const col = index % gridSize;
-    const dx = (col - (gridSize - 1) / 2) * spacing;
-    const dy = (row - (gridSize - 1) / 2) * spacing;
+    const row      = Math.floor(index / gridSize);
+    const col      = index % gridSize;
+    const dx       = (col - (gridSize - 1) / 2) * spacing;
+    const dy       = (row - (gridSize - 1) / 2) * spacing;
     const [lng, lat] = center;
     const lngOffset = lng + dx;
     const latOffset = lat + dy;
@@ -58,22 +62,17 @@ export class MapLayers {
       },
       properties: {
         extrusionHeight: count * 5,
-        extrusionBase: 0,
-        color: color
+        extrusionBase:   0,
+        color:           color
       }
     };
   }
 
-  private static addHeatmapLayer(map: mapboxgl.Map, id: string, data: GeoJSON.FeatureCollection, color: string) {
+  private static addHeatmapLayer(map: mapboxgl.Map, id: string, data: FeatureCollection, color: string) {
     const heatSourceId = `${id}-heatmap`;
-
     if (!map.getSource(heatSourceId)) {
-      map.addSource(heatSourceId, {
-        type: "geojson",
-        data: data
-      });
+      map.addSource(heatSourceId, { type: "geojson", data });
     }
-
     if (!map.getLayer(heatSourceId)) {
       map.addLayer({
         id: heatSourceId,
@@ -87,10 +86,10 @@ export class MapLayers {
             "interpolate",
             ["linear"],
             ["heatmap-density"],
-            0, "rgba(0,0,255,0)",
+            0,   "rgba(0,0,255,0)",
             0.2, color,
             0.4, color,
-            1, "red"
+            1,   "red"
           ],
           "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 20, 20],
           "heatmap-opacity": 0.8
@@ -99,10 +98,16 @@ export class MapLayers {
     }
   }
 
-  private static addClusterAndExpandedLayers(map: mapboxgl.Map, id: string, data: GeoJSON.FeatureCollection, paint: mapboxgl.FillExtrusionLayerSpecification["paint"], level: number) {
-    const grouped = this.groupFeaturesByLocation(data);
+  private static addClusterAndExpandedLayers(
+      map: mapboxgl.Map,
+      id: string,
+      data: GeoJSON.FeatureCollection,
+      paint: NonNullable<mapboxgl.CirclePaint>,
+      level: number
+  ) {
+    const grouped: Map<string, GeoJSON.Feature[]> = this.groupFeaturesByLocation(data);
     const clustered: GeoJSON.Feature[] = [];
-    const expanded: GeoJSON.Feature[] = [];
+    const expanded:  GeoJSON.Feature[] = [];
 
     grouped.forEach((group, key) => {
       const [lng, lat] = key.split(",").map(Number);
@@ -119,16 +124,15 @@ export class MapLayers {
         data: { type: "FeatureCollection", features: clustered }
       });
     }
-
     if (!map.getLayer(`${id}-cluster`)) {
       map.addLayer({
         id: `${id}-cluster`,
         type: "circle",
         source: clusterSourceId,
         paint: {
-          "circle-color": paint["circle-color"] || "#888",
-          "circle-radius": 6,
-          "circle-opacity": 0.8,
+          "circle-color":       paint["circle-color"] || "#888",
+          "circle-radius":      6,
+          "circle-opacity":     0.8,
           "circle-emissive-strength": 1.5
         },
         minzoom: 0,
@@ -142,17 +146,16 @@ export class MapLayers {
         data: { type: "FeatureCollection", features: expanded }
       });
     }
-
     if (!map.getLayer(`${id}-extruded`)) {
       map.addLayer({
         id: `${id}-extruded`,
         type: "fill-extrusion",
         source: expandedSourceId,
         paint: {
-          "fill-extrusion-color": ["get", "color"],
-          "fill-extrusion-height": ["get", "extrusionHeight"],
-          "fill-extrusion-base": ["get", "extrusionBase"],
-          "fill-extrusion-opacity": 0.8,
+          "fill-extrusion-color":       ["get", "color"],
+          "fill-extrusion-height":      ["get", "extrusionHeight"],
+          "fill-extrusion-base":        ["get", "extrusionBase"],
+          "fill-extrusion-opacity":     0.8,
           "fill-extrusion-emissive-strength": 1.5
         },
         minzoom: 15,
@@ -161,23 +164,42 @@ export class MapLayers {
     }
   }
 
-  static restoreAllLayers(map: mapboxgl.Map, isDark: boolean, mode: "dotmap" | "heatmap") {
-    // Clean all previous layers regardless of current dataset enabled state
+  /**
+   * Restore all enabled dataset layers by fetching their GeoJSON at runtime.
+   */
+  static async restoreAllLayers(
+      map: mapboxgl.Map,
+      isDark: boolean,
+      mode: "dotmap" | "heatmap"
+  ) {
+    // 1) remove any existing sources/layers for all datasets
     for (const { id } of datasets) {
       this.removeLayersForId(map, id);
     }
 
-    const enabledDatasets = datasets.filter(d => d.enabled);
-    const datasetRanks = enabledDatasets
-      .map(d => ({ id: d.id, size: d.data.features.length }))
-      .sort((a, b) => b.size - a.size)
-      .map((d, i) => ({ id: d.id, level: i }));
+    // 2) filter only enabled datasets and fetch their data
+    const enabled = datasets.filter(d => d.enabled);
+    const loaded = await Promise.all(
+        enabled.map(async ({ id }) => {
+          const url = LAYER_URLS[id];
+          const data = await fetch(url).then(r => r.json()) as FeatureCollection;
+          return { id, data };
+        })
+    );
 
-    for (const { id, data } of enabledDatasets) {
-      const level = datasetRanks.find(r => r.id === id)?.level || 0;
+    // 3) rank them by feature count
+    const ranks = loaded
+        .map(d => ({ id: d.id, size: d.data.features.length }))
+        .sort((a, b) => b.size - a.size)
+        .map((d, i) => ({ id: d.id, level: i }));
+
+    // 4) add each layer according to viz mode
+    for (const { id, data } of loaded) {
+      const lvl   = ranks.find(r => r.id === id)?.level || 0;
       const color = this.getColorForId(id, isDark);
+
       if (mode === "dotmap") {
-        this.addClusterAndExpandedLayers(map, id, data, { "circle-color": color }, level);
+        this.addClusterAndExpandedLayers(map, id, data, { "circle-color": color }, lvl);
       } else {
         this.addHeatmapLayer(map, id, data, color);
       }
@@ -185,39 +207,34 @@ export class MapLayers {
   }
 
   static removeLayersForId(map: mapboxgl.Map, id: string) {
-    const layers = [`${id}-cluster`, `${id}-extruded`, `${id}-heatmap`];
-    const sources = [`${id}-cluster`, `${id}-extruded`, `${id}-heatmap`];
-    for (const layerId of layers) {
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-    }
-    for (const sourceId of sources) {
-      if (map.getSource(sourceId)) map.removeSource(sourceId);
+    for (const suffix of ["-cluster","-extruded","-heatmap"]) {
+      const lid = id + suffix;
+      if (map.getLayer(lid))  map.removeLayer(lid);
+      if (map.getSource(lid)) map.removeSource(lid);
     }
   }
 
   private static getColorForId(id: string, isDark: boolean): string {
-    const darkColors: Record<string, string> = {
-      shootings: "#ff0000",
-      assaults: "#e67300",
-      auto_thefts: "#e600e6",
-      bicycle_thefts: "#4dc3ff",
-      homicides: "#000000",
-      motor_thefts: "#9900cc",
-      robberies: "#006600",
-      thefts_over_open: "#ffcc00"
+    const dark: Record<string,string> = {
+      shootings:       "#ff0000",
+      assaults:        "#e67300",
+      auto_thefts:     "#e600e6",
+      bicycle_thefts:  "#4dc3ff",
+      homicides:       "#000000",
+      motor_thefts:    "#9900cc",
+      robberies:       "#006600",
+      thefts_over_open:"#ffcc00"
     };
-
-    const lightColors: Record<string, string> = {
-      shootings: "#ff3333",
-      assaults: "#ff9933",
-      auto_thefts: "#ff66ff",
-      bicycle_thefts: "#66d9ff",
-      homicides: "#333333",
-      motor_thefts: "#cc66ff",
-      robberies: "#00b300",
-      thefts_over_open: "#ffd700"
+    const light: Record<string,string> = {
+      shootings:       "#ff3333",
+      assaults:        "#ff9933",
+      auto_thefts:     "#ff66ff",
+      bicycle_thefts:  "#66d9ff",
+      homicides:       "#333333",
+      motor_thefts:    "#cc66ff",
+      robberies:       "#00b300",
+      thefts_over_open:"#ffd700"
     };
-
-    return (isDark ? darkColors : lightColors)[id] || "#777777";
+    return (isDark ? dark : light)[id] || "#777777";
   }
 }
