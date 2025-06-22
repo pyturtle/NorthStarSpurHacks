@@ -9,7 +9,6 @@ import { MapSettingsSidebar } from "@/components/MapSettings";
 import { IconContext } from "react-icons";
 import { IoMoon } from "react-icons/io5";
 import { FaArrowUp } from "react-icons/fa";
-import NorthStarLogo from "@/public/NorthStarLogo.svg";
 import { MapLayers } from "@/app/map_layers";
 import Image from "next/image";
 import styles from "./page.module.css";
@@ -20,6 +19,7 @@ import { IoMdSwap } from "react-icons/io";
 import dynamic from "next/dynamic";
 
 const SearchBox = dynamic(
+    // @ts-ignore
     () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
     { ssr: false }
 );
@@ -31,7 +31,7 @@ function getRiskClass(score: number) {
     return styles2.hazardVeryLow;
 }
 
-const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+const accessToken: string | undefined = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
 export default function Home() {
@@ -67,7 +67,7 @@ export default function Home() {
   const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
   const lightStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc";
 
-  const geocoder = new GeocodingCore({ accessToken: mapboxgl.accessToken });
+  const geocoder = new GeocodingCore({ accessToken: accessToken });
 
   // Clears selected marker on map
   const reset_marker = () => {
@@ -465,7 +465,7 @@ export default function Home() {
                 </div>
             </div>
         )}
-      <Image src={NorthStarLogo} alt="NorthStar Logo" width={100} height={100} className={styles.logo} />
+      <Image src={"/NorthStarLogo.svg"} alt="NorthStar Logo" width={100} height={100} className={styles.logo} />
     </div>
   );
 }

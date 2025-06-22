@@ -1,63 +1,45 @@
+import fs from "fs/promises";
+import path from "path";
+
 interface GeoJSONFeatureCollection {
-  features: Array<{
-    geometry: {
-      coordinates: number[];
-    };
-    properties: any;
-  }>;
+  features: Array<{ geometry: { coordinates: number[] }; properties: any }>;
 }
 
-import shootingsData from "@/public/layer-data/shootings_2023-2025.json";
-import assaultsData from "@/public/layer-data/assaults_2023-2025.json";
-import autoTheftsData from "@/public/layer-data/auto thefts_2023-2025.json";
-import bicycleTheftsData from "@/public/layer-data/bicycle thefts_2023-2025.json";
-import homicidesData from "@/public/layer-data/homicides_2023-2025.json";
-import motorTheftsData from "@/public/layer-data/motor thefts_2023-2025.json";
-import robberiesData from "@/public/layer-data/robberies_2023-2025.json";
-import theftsOverData from "@/public/layer-data/thefts over open_2023-2025.json";
+let crimeDataCache: Record<string, { lat: number; lng: number }[]> | null = null;
 
-export function loadCrimeData() {
-  const shootings = shootingsData as GeoJSONFeatureCollection;
-  const assaults = assaultsData as GeoJSONFeatureCollection;
-  const autoThefts = autoTheftsData as GeoJSONFeatureCollection;
-  const bicycleThefts = bicycleTheftsData as GeoJSONFeatureCollection;
-  const homicides = homicidesData as GeoJSONFeatureCollection;
-  const motorThefts = motorTheftsData as GeoJSONFeatureCollection;
-  const robberies = robberiesData as GeoJSONFeatureCollection;
-  const theftsOver = theftsOverData as GeoJSONFeatureCollection;
+/**
+ * Dynamically loads crime GeoJSON files from public/layer-data at runtime (server-side).
+ * Caches the parsed results to avoid repeated disk reads.
+ */
+export async function loadCrimeData() {
+  if (crimeDataCache) {
+    return crimeDataCache;
+  }
 
-  return {
-    "Shootings": shootings.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-    "Homicides": homicides.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-    "Assaults": assaults.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-    "Robberies": robberies.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-    "Auto Thefts": autoThefts.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-    "Motor Vehicle Thefts": motorThefts.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-    "Bicycle Thefts": bicycleThefts.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-    "Property Thefts": theftsOver.features.map(f => ({ 
-      lat: f.geometry.coordinates[1], 
-      lng: f.geometry.coordinates[0] 
-    })),
-  };
+  const baseDir = path.join(process.cwd(), "public", "layer-data");
+  const files: Array<[string, string]> = [
+    ["Shootings",           "shootings_2023-2025.json"],
+    ["Homicides",           "homicides_2023-2025.json"],
+    ["Assaults",            "assaults_2023-2025.json"],
+    ["Robberies",           "robberies_2023-2025.json"],
+    ["Auto Thefts",         "auto thefts_2023-2025.json"],
+    ["Motor Vehicle Thefts","motor thefts_2023-2025.json"],
+    ["Bicycle Thefts",      "bicycle thefts_2023-2025.json"],
+    ["Property Thefts",     "thefts over open_2023-2025.json"],
+  ];
+
+  const result: Record<string, { lat: number; lng: number }[]> = {};
+
+  for (const [key, filename] of files) {
+    const filePath = path.join(baseDir, filename);
+    const raw = await fs.readFile(filePath, "utf-8");
+    const geojson = JSON.parse(raw) as GeoJSONFeatureCollection;
+    result[key] = geojson.features.map(f => ({
+      lat: f.geometry.coordinates[1],
+      lng: f.geometry.coordinates[0]
+    }));
+  }
+
+  crimeDataCache = result;
+  return crimeDataCache;
 }

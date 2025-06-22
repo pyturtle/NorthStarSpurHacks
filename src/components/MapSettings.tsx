@@ -1,8 +1,7 @@
 "use client";
-import React, { useState } from "react";
+import React, {ReactNode, useState} from "react";
 import styles from "../app/page.module.css";
 import Image from "next/image";
-import NorthStarIcon from "@/public/NorthStarIcon.svg";
 import {
   FaDollarSign,
   FaGun,
@@ -28,7 +27,17 @@ const CRIME_LAYERS = [
   { key: "motorThefts", label: "Motor Vehicle Thefts", icon: <FaCarCrash />, color: "#cc66ff" },
 ];
 
-function CrimeLayerToggle({ label, icon, color, selected, onClick }) {
+interface CrimeLayerToggleProps {
+    label: string;
+    icon: ReactNode;
+    color: string;
+    selected: boolean;
+    onClick: () => void;
+}
+
+
+
+function CrimeLayerToggle({ label, icon, color, selected, onClick }: CrimeLayerToggleProps) {
   return (
     <div
       onClick={onClick}
@@ -60,6 +69,7 @@ function CrimeLayerToggle({ label, icon, color, selected, onClick }) {
   );
 }
 
+// @ts-ignore
 export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode }) {
   const [open, setOpen] = useState(false);
 
@@ -75,10 +85,11 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
   });
 
   const [satellite, setSatellite] = useState(false);
-
+    // @ts-ignore
   const toggleLayer = (key) => {
     setLayers((prev) => {
-      const newValue = !prev[key];
+      // @ts-ignore
+        const newValue = !prev[key];
       const datasetMap = {
         shootings: "shootings",
         homicides: "homicides",
@@ -89,7 +100,8 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
         openData: "thefts_over_open",
         motorThefts: "motor_thefts"
       };
-      const datasetId = datasetMap[key];
+      // @ts-ignore
+        const datasetId = datasetMap[key];
       const dataset = datasets.find((d) => d.id === datasetId);
       if (dataset) dataset.enabled = newValue;
       if (map) {
@@ -99,7 +111,7 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
       return { ...prev, [key]: newValue };
     });
   };
-
+    // @ts-ignore
   const styleButton = (key, label, image) => (
     <button
       key={key}
@@ -143,7 +155,7 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
         className={`${styles.sidebarToggle} ${open ? styles.sidebarToggleOpen : ""}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <Image src={NorthStarIcon} alt="Settings" width={32} height={32} />
+        <Image src={"/NorthStarIcon.svg"} alt="Settings" width={32} height={32} />
       </button>
 
       <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
@@ -158,6 +170,7 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
               label={label}
               icon={icon}
               color={color}
+                // @ts-ignore
               selected={layers[key]}
               onClick={() => toggleLayer(key)}
             />
