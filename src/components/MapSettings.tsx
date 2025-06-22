@@ -1,4 +1,3 @@
-"use client";
 import React, { useState } from "react";
 import styles from "../app/page.module.css";
 import Image from "next/image";
@@ -60,7 +59,7 @@ function CrimeLayerToggle({ label, icon, color, selected, onClick }) {
   );
 }
 
-export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode, satellite, setSatellite }) {
+export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode }) {
   const [open, setOpen] = useState(false);
 
   const [layers, setLayers] = useState({
@@ -73,6 +72,8 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
     openData: false,
     motorThefts: false
   });
+
+  const [satellite, setSatellite] = useState(false);
 
   const toggleLayer = (key) => {
     setLayers((prev) => {
@@ -101,7 +102,7 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
   const styleButton = (key, label, image) => (
     <button
       key={key}
-      onClick={() => setVisualizationMode(key === "heatmap" ? "heatmap" : "dotmap")}
+      onClick={() => setVisualizationMode(key)} // Allow heatmap, dotmap, iconmap
       style={{
         width: "80px",
         height: "80px",
