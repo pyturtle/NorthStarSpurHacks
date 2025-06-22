@@ -62,6 +62,7 @@ export default function Home() {
   const [isDark, setIsDark] = useState(true);
   const [transportMode, setTransportMode] = useState<"walking" | "cycling" | "driving-traffic">("walking");
   const [visualizationMode, setVisualizationMode] = useState<"dotmap" | "heatmap">("dotmap");
+  const [satellite, setSatellite] = useState(false);
 
   // Map styles
   const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
@@ -85,16 +86,57 @@ export default function Home() {
     if (storedViz === "heatmap" || storedViz === "dotmap") setVisualizationMode(storedViz);
   }, []);
 
-  // Update map style and restore layers when dark mode changes
+  // Satellite effect
   useEffect(() => {
+    if (!mapRef.current) return;
+  
     const map = mapRef.current;
-    if (!map) return;
-    localStorage.setItem("northstar-dark-mode", isDark.toString());
+  
+    const styleToUse = satellite
+      ? "mapbox://styles/mapbox/satellite-streets-v12"
+      : isDark
+        ? darkStyle
+        : lightStyle;
+  
+    map.once("style.load", () => {
+      if (satellite) {
+        map.addSource("mapbox-dem", {
+          "type": "raster-dem",
+          "url": "mapbox://mapbox.mapbox-terrain-dem-v1",
+          "tileSize": 512,
+          "maxzoom": 14,
+        });
+        map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+        map.setPitch(60);
+        map.setBearing(-30);
+      } else {
+        map.setTerrain(null);
+        map.setPitch(0);
+        map.setBearing(0);
+      }
+      MapLayers.restoreAllLayers(map, isDark, visualizationMode);
+      // You can also restore route/pins here if needed
+    });
+    map.setStyle(styleToUse);
+  }, [satellite]);
 
+  // Dark/Light effect
+  useEffect(() => {
+    if (!mapRef.current) return;
+  
+    const map = mapRef.current;
+  
+    // Don't setStyle if satellite is ON
+    if (satellite) {
+      // Just adjust layers' paint properties
+      MapLayers.restoreAllLayers(map, isDark, visualizationMode);
+      return;
+    }
+  
+    // When NOT satellite, just switch the style
     map.once("style.load", () => {
       MapLayers.restoreAllLayers(map, isDark, visualizationMode);
     });
-
     map.setStyle(isDark ? darkStyle : lightStyle);
   }, [isDark]);
 
@@ -129,29 +171,45 @@ export default function Home() {
         return;
       }
 
-            // Create a new marker at the clicked location
-            const lng = e.lngLat.lng;
-            const lat = e.lngLat.lat;
-            markerRef.current = new mapboxgl.Marker({ color: "#007AFF" })
-                .setLngLat([lng, lat])
-                .addTo(mapRef.current!);
+        // Create a new marker at the clicked location
+        const lng = e.lngLat.lng;
+        const lat = e.lngLat.lat;
+        markerRef.current = new mapboxgl.Marker({ color: "#007AFF" })
+            .setLngLat([lng, lat])
+            .addTo(mapRef.current!);
 
-            // Reverse geocode the clicked location to get address details
-            const response = await geocoder.reverse(e.lngLat, {
-                types: new Set(["address", "street", "place", "neighborhood"]),
-                limit: 1,
-            });
-
-            const feat = response.features?.[0];
-            console.log(JSON.stringify(feat, null, 2));
-
-            if (feat) {
-                setSelectedLocation({
-                    coords: [lng, lat] as [number, number],
-                    feature: feat
-                });
-            }
+        // Reverse geocode the clicked location to get address details
+        const response = await geocoder.reverse(e.lngLat, {
+            types: new Set(["address", "street", "place", "neighborhood"]),
+            limit: 1,
         });
+
+        const feat = response.features?.[0];
+        console.log(JSON.stringify(feat, null, 2));
+
+        if (feat) {
+            setSelectedLocation({
+                coords: [lng, lat] as [number, number],
+                feature: feat
+            });
+        }
+    });
+
+    mapRef.current.on("load", () => {
+        if (satellite) {
+          mapRef.current?.addSource("mapbox-dem", {
+            "type": "raster-dem",
+            "url": "mapbox://mapbox.mapbox-terrain-dem-v1",
+            "tileSize": 512,
+            "maxzoom": 14
+          });
+          mapRef.current?.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+          mapRef.current?.setPitch(60);
+          mapRef.current?.setBearing(-30);
+        }
+      
+        MapLayers.restoreAllLayers(mapRef.current!, isDark, visualizationMode);
+    });
 
     mapRef.current.on("load", () => {
       MapLayers.restoreAllLayers(mapRef.current!, isDark, visualizationMode);
@@ -305,6 +363,8 @@ export default function Home() {
         isDark={isDark}
         visualizationMode={visualizationMode}
         setVisualizationMode={setVisualizationMode}
+        satellite={satellite}
+        setSatellite={setSatellite}
       />
 
       <aside className={`${styles.infoPanel} ${selectedLocation ? styles.infoPanelOpen : ""}`}>
