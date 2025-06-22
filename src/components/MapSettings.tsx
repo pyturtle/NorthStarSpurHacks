@@ -3,63 +3,65 @@ import React, { useState } from "react";
 import styles from "../app/page.module.css";
 import Image from "next/image";
 import NorthStarIcon from "@/public/NorthStarIcon.svg";
-import { FaDollarSign, FaGun, FaMask } from "react-icons/fa6";
+import {
+  FaDollarSign,
+  FaGun,
+  FaMask
+} from "react-icons/fa6";
 import { FaCarCrash, FaMapMarkedAlt } from "react-icons/fa";
-import { GiCarDoor, GiFist, GiChalkOutlineMurder } from "react-icons/gi";
+import {
+  GiCarDoor,
+  GiFist,
+  GiChalkOutlineMurder
+} from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
 import { ReactNode } from "react";
 
-// Reusable toggle switch
-function Toggle({
+// Crime layer configuration with color-coding
+const CRIME_LAYERS = [
+  { key: "shootings", label: "Shootings", icon: <FaGun />, color: "#ff3333" },
+  { key: "homicides", label: "Homicides", icon: <GiChalkOutlineMurder />, color: "#333333" },
+  { key: "assaults", label: "Assaults", icon: <GiFist />, color: "#ff9933" },
+  { key: "autoThefts", label: "Auto Thefts", icon: <GiCarDoor />, color: "#ff66ff" },
+  { key: "bicycleThefts", label: "Bicycle Thefts", icon: <GrBike />, color: "#66d9ff" },
+  { key: "robberies", label: "Robberies", icon: <FaMask />, color: "#00b300" },
+  { key: "openData", label: "Open Data Thefts", icon: <FaDollarSign />, color: "#ffd700" },
+  { key: "motorThefts", label: "Motor Vehicle Thefts", icon: <FaCarCrash />, color: "#cc66ff" },
+];
+
+function CrimeLayerToggle({
   label,
-  value,
-  onToggle,
   icon,
+  color,
+  selected,
+  onClick,
 }: {
   label: string;
-  value: boolean;
-  onToggle: () => void;
-  icon?: ReactNode;
+  icon: React.ReactNode;
+  color: string;
+  selected: boolean;
+  onClick: () => void;
 }) {
   return (
     <div
+      onClick={onClick}
       style={{
+        width: "100%", // ensures full row width
         display: "flex",
-        justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: "10px",
+        gap: "10px",
+        padding: "8px 12px",
+        marginBottom: "6px",
+        borderRadius: "12px",
+        cursor: "pointer",
+        background: selected ? "#e0e0e0" : "transparent", // solid grey
+        fontWeight: selected ? 700 : 500,
+        color: "#111",
+        transition: "background 0.2s ease, font-weight 0.2s ease",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        {icon}
-        <span style={{ fontSize: "0.9rem", fontWeight: 500 }}>{label}</span>
-      </div>
-      <button
-        onClick={onToggle}
-        style={{
-          position: "relative",
-          width: "42px",
-          height: "24px",
-          background: value ? "#4ade80" : "#ccc",
-          borderRadius: "999px",
-          border: "none",
-          cursor: "pointer",
-          transition: "background 0.3s ease",
-        }}
-      >
-        <span
-          style={{
-            position: "absolute",
-            top: "3px",
-            left: value ? "22px" : "4px",
-            width: "18px",
-            height: "18px",
-            borderRadius: "50%",
-            background: "#fff",
-            transition: "left 0.3s ease",
-          }}
-        />
-      </button>
+      <span style={{ fontSize: "16px", color }}>{icon}</span>
+      <span>{label}</span>
     </div>
   );
 }
@@ -140,34 +142,44 @@ export function MapSettingsSidebar() {
 
       <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
         <h1>
-          <b>Map Settings</b>
+          <b>Map Settings (Click!)</b>
         </h1>
 
         {/* Crime layer toggles */}
         <div style={{ marginTop: "12px" }}>
-          <Toggle label="Shootings" value={layers.shootings} onToggle={() => toggleLayer("shootings")} icon={<FaGun />} />
-          <Toggle label="Homicides" value={layers.homicides} onToggle={() => toggleLayer("homicides")} icon={<GiChalkOutlineMurder />} />
-          <Toggle label="Assaults" value={layers.assaults} onToggle={() => toggleLayer("assaults")} icon={<GiFist />} />
-          <Toggle label="Auto Thefts" value={layers.autoThefts} onToggle={() => toggleLayer("autoThefts")} icon={<GiCarDoor />} />
-          <Toggle label="Bicycle Thefts" value={layers.bicycleThefts} onToggle={() => toggleLayer("bicycleThefts")} icon={<GrBike />} />
-          <Toggle label="Robberies" value={layers.robberies} onToggle={() => toggleLayer("robberies")} icon={<FaMask />} />
-          <Toggle label="Open Data Thefts" value={layers.openData} onToggle={() => toggleLayer("openData")} icon={<FaDollarSign />} />
-          <Toggle label="Motor Vehicle Thefts" value={layers.motorThefts} onToggle={() => toggleLayer("motorThefts")} icon={<FaCarCrash />} />
+          {CRIME_LAYERS.map(({ key, label, icon, color }) => (
+            <CrimeLayerToggle
+              key={key}
+              label={label}
+              icon={icon}
+              color={color}
+              selected={layers[key as keyof typeof layers]}
+              onClick={() => toggleLayer(key as keyof typeof layers)}
+            />
+          ))}
         </div>
 
-        {/* Satellite toggle */}
+        {/* Satellite toggle remains untouched */}
         <div style={{ marginTop: "16px" }}>
-          <Toggle
+          <CrimeLayerToggle
             label="Satellite Map"
-            value={satellite}
-            onToggle={() => setSatellite(!satellite)}
             icon={<FaMapMarkedAlt />}
+            color="#007AFF"
+            selected={satellite}
+            onClick={() => setSatellite(!satellite)}
           />
         </div>
 
         {/* Map style buttons */}
         <div style={{ marginTop: "24px" }}>
-          <h2 style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "8px", textAlign: "center" }}>
+          <h2
+            style={{
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              marginBottom: "8px",
+              textAlign: "center",
+            }}
+          >
             Map Visual Style
           </h2>
           <div
