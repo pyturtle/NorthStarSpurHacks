@@ -258,7 +258,7 @@ export default function Home() {
                 setTransportMode={setTransportMode}
             />
 
-            <MapSettingsSidebar/>
+            <MapSettingsSidebar map={mapRef.current} isDark={isDark}/>
 
             <aside className={`${styles.infoPanel} ${
                 selectedLocation ? styles.infoPanelOpen : ""

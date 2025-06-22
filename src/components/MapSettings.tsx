@@ -16,7 +16,7 @@ import {
 } from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
 import { ReactNode } from "react";
-import { MapLayers } from "@/app/map_layers";
+import { MapLayers, datasets } from "@/app/map_layers";
 
 // Crime layer configuration with color-coding
 const CRIME_LAYERS = [
@@ -74,7 +74,12 @@ function CrimeLayerToggle({
   );
 }
 
-export function MapSettingsSidebar() {
+interface Props {
+  map: mapboxgl.Map | null;
+  isDark: boolean;
+}
+
+export function MapSettingsSidebar({ map, isDark }: Props) {
   const [open, setOpen] = useState(false);
 
   const [layers, setLayers] = useState({
@@ -91,8 +96,37 @@ export function MapSettingsSidebar() {
   const [satellite, setSatellite] = useState(false);
   const [mapStyle, setMapStyle] = useState<"heatmap" | "dots" | "alt">("heatmap");
 
-  const toggleLayer = (key: keyof typeof layers) =>
-    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleLayer = (key: keyof typeof layers) => {
+  setLayers((prev) => {
+    const newValue = !prev[key];
+    
+    // Update the corresponding dataset
+    const datasetMap: Record<string, string> = {
+      shootings: "shootings",
+      homicides: "homicides",
+      assaults: "assaults",
+      autoThefts: "auto_thefts",
+      bicycleThefts: "bicycle_thefts",
+      robberies: "robberies",
+      openData: "thefts_over_open",
+      motorThefts: "motor_thefts",
+    };
+
+    const datasetId = datasetMap[key];
+    const dataset = datasets.find((d) => d.id === datasetId);
+    if (dataset) dataset.enabled = newValue;
+    if (map) {
+      if (newValue) {
+        // layer turned ON → re-render all valid layers
+        MapLayers.restoreAllLayers(map, isDark);
+      } else {
+        // layer turned OFF → remove its layers immediately
+        MapLayers.removeLayersForId(map, datasetId);
+      }
+    }
+    return { ...prev, [key]: newValue };
+  });
+};
 
   const styleButton = (
     key: "heatmap" | "dots" | "alt",
