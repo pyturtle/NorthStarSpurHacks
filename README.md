@@ -2,6 +2,8 @@
 
 **NorthStar** is a Next.js + Mapbox-powered web application that helps users navigate cities with **safety as a priority**. It overlays crime data onto a map and intelligently scores routes based on risk levels — enabling users to choose between the **fastest**, **safest**, or a **balanced** path.
 
+The idea of this risk-scoring algorithm was inspired by a 2019 urban crime research paper on spatial analysis methods in neighborhoods (https://www.mdpi.com/2220-9964/8/1/51). With Mapbox GL JS, we integrated our risk-scoring output into a custom web map, allowing users to view previous crimes in heatmaps with Google Maps Street View API. 
+
 ---
 
 ## 🚀 Features
