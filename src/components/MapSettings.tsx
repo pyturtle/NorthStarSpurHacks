@@ -71,7 +71,7 @@ function CrimeLayerToggle({ label, icon, color, selected, onClick }: CrimeLayerT
 }
 
 // @ts-ignore
-export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode }) {
+export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode, satellite, setSatellite }) {
   const [open, setOpen] = useState(false);
 
   const [layers, setLayers] = useState({
@@ -85,7 +85,6 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
     motorThefts: false
   });
 
-  const [satellite, setSatellite] = useState(false);
     // @ts-ignore
   const toggleLayer = (key) => {
     setLayers((prev) => {

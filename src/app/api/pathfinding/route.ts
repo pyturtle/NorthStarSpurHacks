@@ -7,16 +7,19 @@ import { calculateRiskScore } from "@/components/calcRiskScore";
 
 const crimeData = await loadCrimeData();  // warm cache on import
 
-function sampleEvery(line: GeoJSON.LineString, interval = 50) {
+function sampleEvery(line: GeoJSON.LineString, samples = 50) {
+    // 1) Wrap the raw geometry into a GeoJSON Feature:
     const feature: GeoJSON.Feature<GeoJSON.LineString> = {
         type: "Feature",
         geometry: line,
-        properties: {}
+        properties: {}        // Turf doesn’t care about props here
     };
+
     const total = length(feature, { units: "meters" });
     const pts: [number, number][] = [];
-    for (let d = 0; d <= total; d += interval) {
-        const point = along(feature, d, { units: "meters" }) as GeoJSON.Feature<GeoJSON.Point>;
+    for (let i = 0; i <= samples; i++) {
+        const dist = (i / samples) * total;
+        const point = along(feature, dist, { units: "meters" }) as GeoJSON.Feature<GeoJSON.Point>;
         pts.push(point.geometry.coordinates as [number, number]);
     }
 
