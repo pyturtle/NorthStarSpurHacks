@@ -13,6 +13,7 @@ import NorthStarLogo from "@/public/NorthStarLogo.svg";
 import { MapLayers } from "@/app/map_layers";
 import Image from "next/image";
 import styles from "./page.module.css";
+import styles2 from "@/components/InfoPanel.module.css";
 import InfoPanel from "@/components/InfoPanel";
 import TransportModeSelector from "@/components/TransportModeSelector";
 import { IoMdSwap } from "react-icons/io";
@@ -23,6 +24,12 @@ const SearchBox = dynamic(
     { ssr: false }
 );
 
+function getRiskClass(score: number) {
+    if (score >= 75) return styles2.hazardHigh;
+    if (score >= 50) return styles2.hazardMedium;
+    if (score >= 25) return styles2.hazardLow;
+    return styles2.hazardVeryLow;
+}
 
 const accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
@@ -34,7 +41,11 @@ export default function Home() {
     const markerRef = useRef<mapboxgl.Marker | null>(null);
     const startMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const endMarkerRef = useRef<mapboxgl.Marker | null>(null);
-    // const mapRoute = useState<>(null)
+    const [routeInfo, setRouteInfo] = useState<{
+        distance: number;
+        duration: number;
+        riskScore: number;
+    } | null>(null);
     const [startAddress, setStartAddress] = useState("");
     const [endAddress, setEndAddress] = useState("");
     const [startCoordinates, setStartCoordinates] = useState<[number, number] | null>(null);
@@ -173,108 +184,112 @@ export default function Home() {
 
     // Always ready to load the path
     useEffect(() => {
-            if (!mapReady || !startCoordinates || !endCoordinates) return;
-            const map = mapRef.current!;
+        if (!mapReady || !startCoordinates || !endCoordinates) return;
+        const map = mapRef.current!;
 
-            (async () => {
-                const coordStr = `${startCoordinates[0]},${startCoordinates[1]};` +
-                    `${endCoordinates[0]},${endCoordinates[1]}`;
-                const { data } = await axios.get(
-                    `https://api.mapbox.com/directions/v5/mapbox/${transportMode}/${coordStr}`, {
-                        params: {
-                            alternatives: true,
-                            overview:     "full",
-                            geometries:   "geojson",
-                            access_token: mapboxgl.accessToken,
-                        }
-                    }
-                );
-                const routes: Array<{ geometry: GeoJSON.LineString }> = data.routes;
-                if (!routes.length) return;
+        (async () => {
+            // Build origin/destination as "lat,lng"
+            const origin      = `${startCoordinates[1]},${startCoordinates[0]}`;
+            const destination = `${endCoordinates[1]},${endCoordinates[0]}`;
 
-                // 1) Clear old route, markers, and any prior sources/layers
-                map.getStyle().layers
-                    .filter(l => l.id.startsWith("route") || l.id === "pins")
-                    .forEach(l => {
-                        if (map.getLayer(l.id))  map.removeLayer(l.id);
-                        if (map.getSource(l.id)) map.removeSource(l.id);
-                    });
+            // 1) Fetch scored routes from your server, including transportMode
+            const resp = await fetch(
+                `/api/pathfinding?` +
+                `origin=${origin}&` +
+                `destination=${destination}&` +
+                `mode=${transportMode}`
+            );
+            const { routes }: {
+                routes: Array<{
+                    geometry:  GeoJSON.LineString;
+                    riskScore: number;
+                    distance:  number;
+                    duration:  number;
+                }>;
+            } = await resp.json();
 
-                // 2) Draw the primary route (id="route0") as before…
-                const r = routes[0];
-                map.addSource("route0", {
-                    type:        "geojson",
-                    data:        r.geometry,
-                    lineMetrics: true
+            if (!routes.length) return;
+
+            // 2) Clear any old route or pin layers & sources
+            map.getStyle().layers
+                .filter(l => l.id.startsWith("route") || l.id === "pins")
+                .forEach(l => {
+                    if (map.getLayer(l.id))  map.removeLayer(l.id);
+                    if (map.getSource(l.id)) map.removeSource(l.id);
                 });
-                const topLayerId = map.getStyle().layers?.find(l => l.type === "symbol")?.id;
-                map.addLayer(
-                    {
-                        id:     "route0",
-                        type:   "line",
-                        source: "route0",
-                        layout: {
-                            "line-cap":  "round",
-                            "line-join": "round"
-                        },
-                        paint: {
-                            "line-gradient": [
-                                "interpolate", ["linear"], ["line-progress"],
-                                0,   "#1E90FF",
-                                0.5, "#00D4FF",
-                                1,   "#1E90FF"
-                            ],
-                            "line-width":             5,
-                            "line-opacity":           0.9,
-                            "line-emissive-strength": 1
-                        }
+
+            // 3) Draw the primary route (route0), color‐coded by riskScore
+            const r = routes[0];
+            setRouteInfo({
+                distance:  r.distance,      // meters
+                duration:  r.duration,      // seconds
+                riskScore: r.riskScore
+            });
+            map.addSource("route0", {
+                type:        "geojson",
+                data:        r.geometry,
+                lineMetrics: true
+            });
+            const topLayerId = map.getStyle().layers
+                ?.find(layer => layer.type === "symbol")?.id;
+            map.addLayer(
+                {
+                    id:     "route0",
+                    type:   "line",
+                    source: "route0",
+                    layout: {
+                        "line-cap":  "round",
+                        "line-join": "round"
                     },
-                    topLayerId
-                );
-
-                // 3) Add a GeoJSON source for two circle markers
-                map.addSource("pins", {
-                    type: "geojson",
-                    data: {
-                        type: "FeatureCollection",
-                        features: [
-                            {
-                                type: "Feature",
-                                geometry: {
-                                    type: "Point",
-                                    coordinates: startCoordinates!
-                                },
-                                properties: {}
-                            },
-                            {
-                                type: "Feature",
-                                geometry: {
-                                    type: "Point",
-                                    coordinates: endCoordinates!
-                                },
-                                properties: {}
-                            }
-                        ]
-                    }
-                });
-
-                map.addLayer({
-                    id:     "pins",
-                    type:   "circle",
-                    source: "pins",
                     paint: {
-                        "circle-radius":       8,
-                        "circle-color":        "#ffffff",
-                        "circle-stroke-color": "#007AFF",
-                        "circle-stroke-width": 2,
-                        "circle-emissive-strength": 1
+                        "line-gradient": [
+                            "interpolate", ["linear"], ["line-progress"],
+                            0,   "#1E90FF",
+                            0.5, "#00D4FF",
+                            1,   "#1E90FF"
+                        ],
+                        "line-width":             5,
+                        "line-opacity":           0.9,
+                        "line-emissive-strength": 1
                     }
-                });
+                },
+                topLayerId
+            );
 
-                // setStartCoordinates(null);
-                // setEndCoordinates(null);
-            })();
-        }, [mapReady, startCoordinates, endCoordinates, transportMode]);
+            // 4) Re-add start/end pins as white circles with blue stroke
+            map.addSource("pins", {
+                type: "geojson",
+                data: {
+                    type: "FeatureCollection",
+                    features: [
+                        {
+                            type:       "Feature",
+                            geometry:   { type: "Point", coordinates: startCoordinates! },
+                            properties: {}
+                        },
+                        {
+                            type:       "Feature",
+                            geometry:   { type: "Point", coordinates: endCoordinates! },
+                            properties: {}
+                        }
+                    ]
+                }
+            });
+            map.addLayer({
+                id:     "pins",
+                type:   "circle",
+                source: "pins",
+                paint: {
+                    "circle-radius":            8,
+                    "circle-color":             "#ffffff",
+                    "circle-stroke-color":      "#007AFF",
+                    "circle-stroke-width":      2,
+                    "circle-emissive-strength": 1
+                }},
+                topLayerId
+            );
+        })();
+    }, [mapReady, startCoordinates, endCoordinates, transportMode]);
 
   // Toggle dark/light mode
   const toggleStyle = () => {
@@ -408,7 +423,48 @@ export default function Home() {
           <IoMoon />
         </IconContext.Provider>
       </button>
+        {routeInfo && (
+            <div className={`${styles2.infoContent} ${styles.routeSummary}`}>
+                <div className={styles2.infoBox}>
+                    <h3 className={styles2.infoTitle}>Route Summary</h3>
 
+                    {/* Row: left = Distance/ETA, right = Badge */}
+                    <div
+                        style={{
+                            display:       "flex",
+                            justifyContent:"space-between",
+                            alignItems:    "center",
+                            gap:           "12px"
+                        }}
+                    >
+                        {/* Left: vertical list */}
+                        <ul
+                            className={styles2.contextList}
+                            style={{ margin: 0, padding: 0, listStyle: "none" }}
+                        >
+                            <li>
+                                <strong>Distance:</strong>{" "}
+                                {(routeInfo.distance / 1000).toFixed(1)} km
+                            </li>
+                            <li>
+                                <strong>ETA:</strong>{" "}
+                                {Math.round(routeInfo.duration / 60)} min
+                            </li>
+                        </ul>
+
+                        {/* Right: inline badge */}
+                        <div
+                            className={`${styles2.hazardBadge} ${getRiskClass(
+                                routeInfo.riskScore
+                            )} pop`}
+                            style={{ minWidth: "36px", textAlign: "center" }}
+                        >
+                            <span>{routeInfo.riskScore}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
       <Image src={NorthStarLogo} alt="NorthStar Logo" width={100} height={100} className={styles.logo} />
     </div>
   );

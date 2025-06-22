@@ -1,5 +1,3 @@
-// src/app/api/safety/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { loadCrimeData } from "@/components/loadCrimeData";
 import { calculateRiskScore } from "@/components/calcRiskScore";
