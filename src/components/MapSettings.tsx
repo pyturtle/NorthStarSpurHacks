@@ -46,7 +46,7 @@ function CrimeLayerToggle({
     <div
       onClick={onClick}
       style={{
-        width: "100%", // ensures full row width
+        width: "100%",
         display: "flex",
         alignItems: "center",
         gap: "10px",
@@ -54,10 +54,17 @@ function CrimeLayerToggle({
         marginBottom: "6px",
         borderRadius: "12px",
         cursor: "pointer",
-        background: selected ? "#e0e0e0" : "transparent", // solid grey
+        background: selected ? "rgba(220, 220, 220, 0.4)" : "transparent",
         fontWeight: selected ? 700 : 500,
-        color: "#111",
-        transition: "background 0.2s ease, font-weight 0.2s ease",
+        color: selected ? "#000" : "#111",
+        borderLeft: selected ? `6px solid ${color}` : "6px solid transparent",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        if (!selected) e.currentTarget.style.background = "rgba(0,0,0,0.05)";
+      }}
+      onMouseLeave={(e) => {
+        if (!selected) e.currentTarget.style.background = "transparent";
       }}
     >
       <span style={{ fontSize: "16px", color }}>{icon}</span>
@@ -141,8 +148,8 @@ export function MapSettingsSidebar() {
       </button>
 
       <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
-        <h1>
-          <b>Map Settings (Click!)</b>
+        <h1 style={{ textAlign: "center", fontWeight: 700 }}>
+          Map Settings (Click!)
         </h1>
 
         {/* Crime layer toggles */}

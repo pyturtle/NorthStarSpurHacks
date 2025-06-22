@@ -80,11 +80,12 @@ export default function CrimeLegend({ isDark }: { isDark: boolean }) {
           fontSize: "0.9rem",
           fontWeight: 700,
           marginBottom: "10px",
-          borderBottom: "1px solid rgba(255,255,255,0.3)",
+          borderBottom: "2px solid rgba(255,255,255,0.3)",
           paddingBottom: "4px",
+          textAlign: "center",
         }}
       >
-        Crime Legend
+        Legend
       </h4>
       <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
         {CRIMES.map(({ label, icon, colorLight, colorDark }) => (

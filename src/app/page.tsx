@@ -141,13 +141,6 @@ export default function Home() {
         return () => mapRef.current?.remove();
     }, []);
 
-    useEffect(() => {
-        if (!mapReady || !startCoordinates || !endCoordinates) return;
-        const map = mapRef.current!;
-
-    }, [mapReady, startCoordinates, endCoordinates, transportMode]);
-
-
     // toggle dark/light mode
     const toggleStyle = () => {
         setIsDark((d) => !d);
@@ -193,9 +186,6 @@ export default function Home() {
                                 Set as End <FaArrowUp />
                             </button>
                         </div>
-
-                        <InfoPanel feature={selectedLocation.feature}/>
-
                     </>
                 )}
             </aside>
@@ -276,6 +266,8 @@ export default function Home() {
                 height={100}
                 className={styles.logo}
             />
+
+            <CrimeLegend />
         </div>
   );
 }
