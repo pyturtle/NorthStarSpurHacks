@@ -133,7 +133,7 @@ export class MapLayers {
           "circle-emissive-strength": 1.5
         },
         minzoom: 0,
-        maxzoom: 14.9,
+        maxzoom: 15,
       });
     }
 
