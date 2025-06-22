@@ -195,7 +195,7 @@ export default function Home() {
 
             <div ref={mapContainer} className={styles.mapContainer}/>
             {mapReady && (
-                <>
+                <div className={styles.searchRow}>
                     <div className={styles.searchContainer}>
                         <MapSearchBox
                             map={mapRef.current}
@@ -206,19 +206,6 @@ export default function Home() {
                             inputValue={startAddress}
                             setInputValue={setStartAddress}
                             setCoordinate={setStartCoordinates}
-                        />
-                    </div>
-
-                    <div className={`${styles.searchContainer} ${styles.searchContainerEnd}`}>
-                        <MapSearchBox
-                            map={mapRef.current}
-                            placeholder="End address"
-                            onRetrieve={(coords) => {
-                                setEndCoordinates(coords);
-                            }}
-                            inputValue={endAddress}
-                            setInputValue={setEndAddress}
-                            setCoordinate={setEndCoordinates}
                         />
                     </div>
                     <div className={styles.swapContainer}>
@@ -236,11 +223,27 @@ export default function Home() {
 
                             }}
                         >
-                            <IoMdSwap/>
+                            <IconContext value={{
+                                color: "#000000",
+                                size: "20px",
+                            }}>
+                                <IoMdSwap/>
+                            </IconContext>
                         </button>
                     </div>
-
-                </>
+                    <div className={`${styles.searchContainer} ${styles.searchContainerEnd}`}>
+                        <MapSearchBox
+                            map={mapRef.current}
+                            placeholder="End address"
+                            onRetrieve={(coords) => {
+                                setEndCoordinates(coords);
+                            }}
+                            inputValue={endAddress}
+                            setInputValue={setEndAddress}
+                            setCoordinate={setEndCoordinates}
+                        />
+                    </div>
+                </div>
             )}
 
             <button
