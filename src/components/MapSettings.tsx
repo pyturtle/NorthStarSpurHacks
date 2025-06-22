@@ -11,7 +11,6 @@ import { GiCarDoor, GiFist, GiChalkOutlineMurder } from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
 import { MapLayers, datasets } from "@/app/map_layers";
 
-// All toggleable crime types — make sure keys match `datasets` ids
 const CRIME_LAYERS = [
   { key: "shootings", label: "Shootings", icon: <FaGun />, color: "#ff3333" },
   { key: "homicides", label: "Homicides", icon: <GiChalkOutlineMurder />, color: "#333333" },
@@ -133,7 +132,6 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
 
   return (
     <>
-      {/* Floating settings button */}
       <button
         className={`${styles.sidebarToggle} ${open ? styles.sidebarToggleOpen : ""}`}
         onClick={() => setOpen((o) => !o)}
@@ -141,7 +139,6 @@ export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualiz
         <Image src={"/NorthStarIcon.svg"} alt="Settings" width={32} height={32} />
       </button>
 
-      {/* Sidebar */}
       <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
         <h1 style={{ textAlign: "center", fontWeight: 700 }}>
           Map Settings (Click!)

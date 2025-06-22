@@ -41,6 +41,8 @@ export default function Home() {
     const markerRef = useRef<mapboxgl.Marker | null>(null);
     const startMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const endMarkerRef = useRef<mapboxgl.Marker | null>(null);
+    const [activeRoute, setActiveRoute] = useState<GeoJSON.LineString | null>(null);
+    const [activePins, setActivePins] = useState<[number, number][] | null>(null);
     const [routeInfo, setRouteInfo] = useState<{
         distance: number;
         duration: number;
@@ -115,7 +117,11 @@ export default function Home() {
         map.setBearing(0);
       }
       MapLayers.restoreAllLayers(map, isDark, visualizationMode);
-      // You can also restore route/pins here if needed
+        if (activeRoute && activePins) {
+            restoreRouteAndPins(map, activeRoute, activePins);
+        }
+
+        // You can also restore route/pins here if needed
     });
     map.setStyle(styleToUse);
   }, [satellite]);
@@ -125,17 +131,17 @@ export default function Home() {
     if (!mapRef.current) return;
   
     const map = mapRef.current;
-  
+
     // Don't setStyle if satellite is ON
-    if (satellite) {
-      // Just adjust layers' paint properties
-      MapLayers.restoreAllLayers(map, isDark, visualizationMode);
-      return;
-    }
+    if (satellite) return;
+
   
     // When NOT satellite, just switch the style
     map.once("style.load", () => {
       MapLayers.restoreAllLayers(map, isDark, visualizationMode);
+        if (activeRoute && activePins) {
+            restoreRouteAndPins(map, activeRoute, activePins);
+        }
     });
     map.setStyle(isDark ? darkStyle : lightStyle);
   }, [isDark]);
@@ -207,12 +213,6 @@ export default function Home() {
           mapRef.current?.setPitch(60);
           mapRef.current?.setBearing(-30);
         }
-      
-        MapLayers.restoreAllLayers(mapRef.current!, isDark, visualizationMode);
-    });
-
-    mapRef.current.on("load", () => {
-      MapLayers.restoreAllLayers(mapRef.current!, isDark, visualizationMode);
     });
 
     setMapReady(true);
@@ -250,6 +250,9 @@ export default function Home() {
             const origin      = `${startCoordinates[1]},${startCoordinates[0]}`;
             const destination = `${endCoordinates[1]},${endCoordinates[0]}`;
 
+            const originCoords = [startCoordinates[0], startCoordinates[1]] as [number, number];
+            const destinationCoords = [endCoordinates[0], endCoordinates[1]] as [number, number];
+
             // 1) Fetch scored routes from your server, including transportMode
             const resp = await fetch(
                 `/api/pathfinding?` +
@@ -270,7 +273,7 @@ export default function Home() {
 
             // 2) Clear any old route or pin layers & sources
             map.getStyle().layers
-                .filter(l => l.id.startsWith("route") || l.id === "pins")
+                .filter(l => l.id.startsWith("route0") || l.id === "pins")
                 .forEach(l => {
                     if (map.getLayer(l.id))  map.removeLayer(l.id);
                     if (map.getSource(l.id)) map.removeSource(l.id);
@@ -322,12 +325,12 @@ export default function Home() {
                     features: [
                         {
                             type:       "Feature",
-                            geometry:   { type: "Point", coordinates: startCoordinates! },
+                            geometry:   { type: "Point", coordinates: originCoords },
                             properties: {}
                         },
                         {
                             type:       "Feature",
-                            geometry:   { type: "Point", coordinates: endCoordinates! },
+                            geometry:   { type: "Point", coordinates: destinationCoords },
                             properties: {}
                         }
                     ]
@@ -346,6 +349,8 @@ export default function Home() {
                 }},
                 topLayerId
             );
+            setActiveRoute(r.geometry);
+            setActivePins([originCoords, destinationCoords]);
         })();
     }, [mapReady, startCoordinates, endCoordinates, transportMode]);
 
@@ -528,4 +533,67 @@ export default function Home() {
       <Image src={"/NorthStarLogo.svg"} alt="NorthStar Logo" width={100} height={100} className={styles.logo} />
     </div>
   );
+}
+
+function restoreRouteAndPins(
+    map: mapboxgl.Map,
+    route: GeoJSON.LineString,
+    pins: [number, number][]
+) {
+    map.addSource("route0", {
+        type: "geojson",
+        data: route,
+        lineMetrics: true,
+    });
+
+    const topLayerId = map.getStyle().layers?.find(l => l.type === "symbol")?.id;
+
+    map.addLayer(
+        {
+            id: "route0",
+            type: "line",
+            source: "route0",
+            layout: {
+                "line-cap": "round",
+                "line-join": "round",
+            },
+            paint: {
+                "line-gradient": [
+                    "interpolate", ["linear"], ["line-progress"],
+                    0, "#1E90FF",
+                    0.5, "#00D4FF",
+                    1, "#1E90FF"
+                ],
+                "line-width": 5,
+                "line-opacity": 0.9,
+                "line-emissive-strength": 1
+            },
+        },
+        topLayerId
+    );
+
+    map.addSource("pins", {
+        type: "geojson",
+        data: {
+            type: "FeatureCollection",
+            features: pins.map(coord => ({
+                type: "Feature",
+                geometry: { type: "Point", coordinates: coord },
+                properties: {},
+            }))
+        }
+    });
+
+    map.addLayer({
+        id: "pins",
+        type: "circle",
+        source: "pins",
+        paint: {
+            "circle-radius": 8,
+            "circle-color": "#ffffff",
+            "circle-stroke-color": "#007AFF",
+            "circle-stroke-width": 2,
+            "circle-emissive-strength": 1,
+        }
+    }, topLayerId);
 }
