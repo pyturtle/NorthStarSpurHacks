@@ -15,6 +15,7 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import InfoPanel from "@/components/InfoPanel";
 import TransportModeSelector from "@/components/TransportModeSelector";
+import CrimeLegend from "@/components/CrimeLegend";
 import { IoMdSwap } from "react-icons/io";
 
 
@@ -370,6 +371,8 @@ export default function Home() {
                 height={100}
                 className={styles.logo}
             />
+
+            <CrimeLegend isDark={isDark} />
         </div>
   );
 }
