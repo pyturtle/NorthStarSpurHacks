@@ -4,7 +4,7 @@ import React from "react";
 import { FaWalking, FaCar } from "react-icons/fa";
 import { MdDirectionsBike } from "react-icons/md";
 
-type TransportMode = 'walk' | 'bike' | 'car';
+type TransportMode = 'walking' | 'cycling' | 'driving-traffic';
 
 interface Props {
   transportMode: TransportMode;
@@ -41,24 +41,24 @@ export default function TransportModeSelector({ transportMode, setTransportMode 
       }}
     >
       <button
-        style={buttonStyle(transportMode === "walk")}
-        onClick={() => setTransportMode("walk")}
+        style={buttonStyle(transportMode === "walking")}
+        onClick={() => setTransportMode("walking")}
       >
         <FaWalking />
         <span>Walk</span>
       </button>
 
       <button
-        style={buttonStyle(transportMode === "bike")}
-        onClick={() => setTransportMode("bike")}
+        style={buttonStyle(transportMode === "cycling")}
+        onClick={() => setTransportMode("cycling")}
       >
         <MdDirectionsBike />
         <span>Bike</span>
       </button>
 
       <button
-        style={buttonStyle(transportMode === "car")}
-        onClick={() => setTransportMode("car")}
+        style={buttonStyle(transportMode === "driving-traffic")}
+        onClick={() => setTransportMode("driving-traffic")}
       >
         <FaCar />
         <span>Car</span>
