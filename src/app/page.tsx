@@ -46,76 +46,77 @@ export default function Home() {
         feature: any;
     } | null>(null);
 
-    // State to manage map readiness and origin/destination coordinates
-    const [mapReady, setMapReady]       = useState(false);
+  // UI and map state
+  const [mapReady, setMapReady] = useState(false);
+  const [isDark, setIsDark] = useState(true);
+  const [transportMode, setTransportMode] = useState<"walking" | "cycling" | "driving-traffic">("walking");
+  const [visualizationMode, setVisualizationMode] = useState<"dotmap" | "heatmap">("dotmap");
 
-    const [isDark, setIsDark] = useState(true);
-    const [transportMode, setTransportMode] = useState<"walking" | "cycling" | "driving-traffic">("walking");
+  // Map styles
+  const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
+  const lightStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc";
 
-    // Custom Light and Dark mode Url
-    const darkStyle = "mapbox://styles/delecive/cmc3s3q3101vs01s67ouvbc4c";
-    const lightStyle = "mapbox://styles/delecive/cmc3s07z9014101rx5r1f3brc";
+  const geocoder = new GeocodingCore({ accessToken: mapboxgl.accessToken });
 
-    // Initialize the GeocodingCore with Mapbox access token
-    const geocoder = new GeocodingCore({
-        accessToken: process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+  // Clears selected marker on map
+  const reset_marker = () => {
+    if (markerRef.current) markerRef.current.remove();
+    markerRef.current = null;
+    setSelectedLocation(null);
+  };
+
+  // Hydrate dark mode and visualization mode from local storage
+  useLayoutEffect(() => {
+    const storedDark = localStorage.getItem("northstar-dark-mode");
+    if (storedDark !== null) setIsDark(storedDark === "true");
+
+    const storedViz = localStorage.getItem("northstar-visualization-mode");
+    if (storedViz === "heatmap" || storedViz === "dotmap") setVisualizationMode(storedViz);
+  }, []);
+
+  // Update map style and restore layers when dark mode changes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    localStorage.setItem("northstar-dark-mode", isDark.toString());
+
+    map.once("style.load", () => {
+      MapLayers.restoreAllLayers(map, isDark, visualizationMode);
     });
 
-    const reset_marker = () => {
-        if (markerRef.current) {
-            markerRef.current.remove();
-        }
-        markerRef.current = null;
-        setSelectedLocation(null);
-    }
+    map.setStyle(isDark ? darkStyle : lightStyle);
+  }, [isDark]);
 
-  // hydrate theme from localStorage
-    useLayoutEffect(() => {
-        const stored = localStorage.getItem("northstar-dark-mode");
-        if (stored !== null) {
-          setIsDark(stored === "true");
-       }
-    }, []);
+  // Re-render layers when visualization mode changes
+  useEffect(() => {
+    if (!mapRef.current || !mapReady) return;
+    localStorage.setItem("northstar-visualization-mode", visualizationMode);
+    MapLayers.restoreAllLayers(mapRef.current, isDark, visualizationMode);
+  }, [visualizationMode]);
 
-  // update map style and restore layers when dark mode changes
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
+  // Initialize map instance and set click handler
+  useEffect(() => {
+    const bounds = new mapboxgl.LngLatBounds(
+      [-79.603709, 43.576155],
+      [-79.132967, 43.878211]
+    );
 
-        localStorage.setItem("northstar-dark-mode", isDark.toString());
+    mapRef.current = new mapboxgl.Map({
+      container: mapContainer.current!,
+      style: isDark ? darkStyle : lightStyle,
+      zoom: 12,
+      center: [-79.38097, 43.64549],
+      maxBounds: bounds,
+      minZoom: 11,
+      maxZoom: 20,
+    });
 
-        // when the new style loads, restore all layers
-        map.once("style.load", () => {
-            MapLayers.restoreAllLayers(map, isDark); // re-add all crime layers with theme-aware styling
-        });
-
-        // switch style (this triggers 'style.load')
-        map.setStyle(isDark ? darkStyle : lightStyle);
-    }, [isDark]);
-
-    useEffect(() => {
-        const bounds = new mapboxgl.LngLatBounds(
-            [-79.603709, 43.576155],
-            [-79.132967, 43.878211]
-        );
-        // initialize the map
-        mapRef.current = new mapboxgl.Map({
-            container: mapContainer.current!,
-            style: isDark ? darkStyle : lightStyle,
-            zoom: 12,
-            center: [-79.38097, 43.64549],
-            maxBounds: bounds,
-            minZoom: 11,
-            maxZoom: 20,
-        });
-
-        mapRef.current.on("click", async (e) => {
-            // If there is a current marker remove it and set the location to null
-            // Double click to remove marker
-            if (markerRef.current){
-                reset_marker();
-                return;
-            }
+    // Handle map click for reverse geocoding
+    mapRef.current.on("click", async (e) => {
+      if (markerRef.current) {
+        reset_marker();
+        return;
+      }
 
             // Create a new marker at the clicked location
             const lng = e.lngLat.lng;
@@ -141,42 +142,34 @@ export default function Home() {
             }
         });
 
-        // initialize layers on first load
-        mapRef.current.on("load", () => {
-            MapLayers.restoreAllLayers(mapRef.current!, isDark); // load all datasets with brightness depending on theme
-        });
+    mapRef.current.on("load", () => {
+      MapLayers.restoreAllLayers(mapRef.current!, isDark, visualizationMode);
+    });
 
-        setMapReady(true);
-        return () => mapRef.current?.remove();
-    }, []);
+    setMapReady(true);
+    return () => mapRef.current?.remove();
+  }, []);
 
-    // Update marker for start coordinate
-    useEffect(() => {
-        if (!mapRef.current) return;
-        // remove old marker
-        startMarkerRef.current?.remove();
+  // Update start/end markers
+  useEffect(() => {
+    if (!mapRef.current) return;
+    startMarkerRef.current?.remove();
+    if (startCoordinates) {
+      startMarkerRef.current = new mapboxgl.Marker({ color: "green" })
+        .setLngLat(startCoordinates)
+        .addTo(mapRef.current);
+    }
+  }, [startCoordinates]);
 
-        if (startCoordinates) {
-            // add a new one
-            startMarkerRef.current = new mapboxgl.Marker({ color: "green" })
-                .setLngLat(startCoordinates)
-                .addTo(mapRef.current);
-        }
-    }, [startCoordinates]);
-
-    // when endCoordinates changes, update the end marker
-    useEffect(() => {
-        if (!mapRef.current) return;
-        // remove old marker
-        endMarkerRef.current?.remove();
-
-        if (endCoordinates) {
-            // add a new one
-            endMarkerRef.current = new mapboxgl.Marker({ color: "red" })
-                .setLngLat(endCoordinates)
-                .addTo(mapRef.current);
-        }
-    }, [endCoordinates]);
+  useEffect(() => {
+    if (!mapRef.current) return;
+    endMarkerRef.current?.remove();
+    if (endCoordinates) {
+      endMarkerRef.current = new mapboxgl.Marker({ color: "red" })
+        .setLngLat(endCoordinates)
+        .addTo(mapRef.current);
+    }
+  }, [endCoordinates]);
 
     // Always ready to load the path
     useEffect(() => {
@@ -283,55 +276,48 @@ export default function Home() {
             })();
         }, [mapReady, startCoordinates, endCoordinates, transportMode]);
 
+  // Toggle dark/light mode
+  const toggleStyle = () => {
+    setIsDark((d) => !d);
+  };
 
-    // toggle dark/light mode
-    const toggleStyle = () => {
-        setIsDark((d) => !d);
-    };
+  return (
+    <div className={styles.pageWrapper}>
+      <TransportModeSelector transportMode={transportMode} setTransportMode={setTransportMode} />
 
-    return (
-        <div className={styles.pageWrapper}>
-            <TransportModeSelector
-                transportMode={transportMode}
-                setTransportMode={setTransportMode}
-            />
+      <MapSettingsSidebar
+        map={mapRef.current}
+        isDark={isDark}
+        visualizationMode={visualizationMode}
+        setVisualizationMode={setVisualizationMode}
+      />
 
-            <MapSettingsSidebar map={mapRef.current} isDark={isDark}/>
+      <aside className={`${styles.infoPanel} ${selectedLocation ? styles.infoPanelOpen : ""}`}>
+        {selectedLocation && (
+          <>
+            <InfoPanel feature={selectedLocation.feature} />
+            <div className={styles.buttonGroup}>
+              <button
+                className={styles.actionButton}
+                onClick={() => {
+                  setStartCoordinates(selectedLocation.coords);
+                  setStartAddress(selectedLocation.feature.properties.name);
+                  reset_marker();
+                }}
+              >Set as Start <FaArrowUp /></button>
 
-            <aside className={`${styles.infoPanel} ${
-                selectedLocation ? styles.infoPanelOpen : ""
-            }`}>
-                {selectedLocation && (
-                    <>
-                        <InfoPanel feature={selectedLocation.feature}/>
-
-                        <div className={styles.buttonGroup}>
-                            {/* Primary action toggles between Set/Replace Origin */}
-                            <button
-                                className={styles.actionButton}
-                                onClick={() => {
-                                    setStartCoordinates(selectedLocation.coords);
-                                    setStartAddress(selectedLocation.feature.properties.name);
-                                    reset_marker();
-                                }}
-                            >
-                                Set as Start <FaArrowUp />
-                            </button>
-
-                            <button
-                                className={styles.actionButton}
-                                onClick={() => {
-                                    setEndCoordinates(selectedLocation.coords);
-                                    setEndAddress(selectedLocation.feature.properties.name);
-                                    reset_marker();
-                                }}
-                            >
-                                Set as End <FaArrowUp />
-                            </button>
-                        </div>
-                    </>
-                )}
-            </aside>
+              <button
+                className={styles.actionButton}
+                onClick={() => {
+                  setEndCoordinates(selectedLocation.coords);
+                  setEndAddress(selectedLocation.feature.properties.name);
+                  reset_marker();
+                }}
+              >Set as End <FaArrowUp /></button>
+            </div>
+          </>
+        )}
+      </aside>
 
             <div ref={mapContainer} className={styles.mapContainer}/>
             {mapReady && (
@@ -414,29 +400,16 @@ export default function Home() {
                 </div>
             )}
 
-            <button
-                onClick={toggleStyle}
-                className={`${styles.toggleButton} ${
-                  isDark ? styles.darkToggle : styles.lightToggle
-                }`}
-            >
-            <IconContext.Provider
-                value={{
-                color: isDark ? "#ffffff" : "#000000",
-                size: "20px",
-                }}
-            >
-                <IoMoon />
-            </IconContext.Provider>
-            </button>
+      <button
+        onClick={toggleStyle}
+        className={`${styles.toggleButton} ${isDark ? styles.darkToggle : styles.lightToggle}`}
+      >
+        <IconContext.Provider value={{ color: isDark ? "#ffffff" : "#000000", size: "20px" }}>
+          <IoMoon />
+        </IconContext.Provider>
+      </button>
 
-            <Image
-                src={NorthStarLogo}
-                alt="NorthStar Logo"
-                width={100}
-                height={100}
-                className={styles.logo}
-            />
-        </div>
+      <Image src={NorthStarLogo} alt="NorthStar Logo" width={100} height={100} className={styles.logo} />
+    </div>
   );
 }

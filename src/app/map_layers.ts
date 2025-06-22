@@ -9,7 +9,6 @@ import motorThefts from "@/public/layer-data/motor thefts_2023-2025.json";
 import robberies from "@/public/layer-data/robberies_2023-2025.json";
 import theftsOver from "@/public/layer-data/thefts over open_2023-2025.json";
 
-// All datasets to be visualized
 export const datasets = [
   { id: "shootings", data: shootings, enabled: false },
   { id: "assaults", data: assaults, enabled: false },
@@ -22,12 +21,7 @@ export const datasets = [
 ];
 
 export class MapLayers {
-  /**
-   * Group features that share the same lat/lng coordinate.
-   */
-  private static groupFeaturesByLocation(
-    data: GeoJSON.FeatureCollection
-  ): Map<string, GeoJSON.Feature[]> {
+  private static groupFeaturesByLocation(data: GeoJSON.FeatureCollection): Map<string, GeoJSON.Feature[]> {
     const map = new Map<string, GeoJSON.Feature[]>();
     for (const feat of data.features) {
       const [lng, lat] = (feat.geometry as any).coordinates;
@@ -38,27 +32,14 @@ export class MapLayers {
     return map;
   }
 
-  /**
-   * Create a single bar (extruded polygon) placed in a grid layout around a center.
-   * Each bar represents the count of incidents at a location for a dataset.
-   */
-  private static buildBarSegment(
-    center: [number, number],
-    index: number,
-    total: number,
-    count: number,
-    color: string
-  ): GeoJSON.Feature {
+  private static buildBarSegment(center: [number, number], index: number, total: number, count: number, color: string): GeoJSON.Feature {
     const barWidth = 0.00003;
     const spacing = 0.00007;
-
     const gridSize = Math.ceil(Math.sqrt(total));
     const row = Math.floor(index / gridSize);
     const col = index % gridSize;
-
     const dx = (col - (gridSize - 1) / 2) * spacing;
     const dy = (row - (gridSize - 1) / 2) * spacing;
-
     const [lng, lat] = center;
     const lngOffset = lng + dx;
     const latOffset = lat + dy;
@@ -76,24 +57,49 @@ export class MapLayers {
         ]]
       },
       properties: {
-        extrusionHeight: count * 5, // bar height proportional to frequency
+        extrusionHeight: count * 5,
         extrusionBase: 0,
         color: color
       }
     };
   }
 
-  /**
-   * Add clustered points and expanded extruded bars to map.
-   */
-  private static addClusterAndExpandedLayers(
-    map: mapboxgl.Map,
-    id: string,
-    data: GeoJSON.FeatureCollection,
-    paint: mapboxgl.FillExtrusionLayerSpecification["paint"],
-    level: number,
-    bool: false
-  ) {
+  private static addHeatmapLayer(map: mapboxgl.Map, id: string, data: GeoJSON.FeatureCollection, color: string) {
+    const heatSourceId = `${id}-heatmap`;
+
+    if (!map.getSource(heatSourceId)) {
+      map.addSource(heatSourceId, {
+        type: "geojson",
+        data: data
+      });
+    }
+
+    if (!map.getLayer(heatSourceId)) {
+      map.addLayer({
+        id: heatSourceId,
+        type: "heatmap",
+        source: heatSourceId,
+        maxzoom: 20,
+        paint: {
+          "heatmap-weight": 1,
+          "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 1, 20, 3],
+          "heatmap-color": [
+            "interpolate",
+            ["linear"],
+            ["heatmap-density"],
+            0, "rgba(0,0,255,0)",
+            0.2, color,
+            0.4, color,
+            1, "red"
+          ],
+          "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 2, 20, 20],
+          "heatmap-opacity": 0.8
+        }
+      });
+    }
+  }
+
+  private static addClusterAndExpandedLayers(map: mapboxgl.Map, id: string, data: GeoJSON.FeatureCollection, paint: mapboxgl.FillExtrusionLayerSpecification["paint"], level: number) {
     const grouped = this.groupFeaturesByLocation(data);
     const clustered: GeoJSON.Feature[] = [];
     const expanded: GeoJSON.Feature[] = [];
@@ -101,15 +107,7 @@ export class MapLayers {
     grouped.forEach((group, key) => {
       const [lng, lat] = key.split(",").map(Number);
       clustered.push({ ...group[0], geometry: { type: "Point", coordinates: [lng, lat] } });
-      expanded.push(
-        this.buildBarSegment(
-          [lng, lat],
-          level,
-          datasets.length,
-          group.length,
-          paint["circle-color"] as string
-        )
-      );
+      expanded.push(this.buildBarSegment([lng, lat], level, datasets.length, group.length, paint["circle-color"] as string));
     });
 
     const clusterSourceId = `${id}-cluster`;
@@ -118,7 +116,7 @@ export class MapLayers {
     if (!map.getSource(clusterSourceId)) {
       map.addSource(clusterSourceId, {
         type: "geojson",
-        data: { type: "FeatureCollection", features: clustered },
+        data: { type: "FeatureCollection", features: clustered }
       });
     }
 
@@ -134,14 +132,14 @@ export class MapLayers {
           "circle-emissive-strength": 1.5
         },
         minzoom: 0,
-        maxzoom: 15,
+        maxzoom: 15
       });
     }
 
     if (!map.getSource(expandedSourceId)) {
       map.addSource(expandedSourceId, {
         type: "geojson",
-        data: { type: "FeatureCollection", features: expanded },
+        data: { type: "FeatureCollection", features: expanded }
       });
     }
 
@@ -158,50 +156,45 @@ export class MapLayers {
           "fill-extrusion-emissive-strength": 1.5
         },
         minzoom: 15,
-        maxzoom: 24,
+        maxzoom: 24
       });
     }
   }
 
-  /**
-   * Add all datasets to the map with proper extrusion and coloring by theme.
-   */
-  static restoreAllLayers(map: mapboxgl.Map, isDark: boolean) {
+  static restoreAllLayers(map: mapboxgl.Map, isDark: boolean, mode: "dotmap" | "heatmap") {
+    // Clean all previous layers regardless of current dataset enabled state
+    for (const { id } of datasets) {
+      this.removeLayersForId(map, id);
+    }
+
     const enabledDatasets = datasets.filter(d => d.enabled);
-  
     const datasetRanks = enabledDatasets
       .map(d => ({ id: d.id, size: d.data.features.length }))
       .sort((a, b) => b.size - a.size)
       .map((d, i) => ({ id: d.id, level: i }));
-  
+
     for (const { id, data } of enabledDatasets) {
       const level = datasetRanks.find(r => r.id === id)?.level || 0;
-      this.addClusterAndExpandedLayers(map, id, data, {
-        "circle-color": this.getColorForId(id, isDark)
-      }, level);
+      const color = this.getColorForId(id, isDark);
+      if (mode === "dotmap") {
+        this.addClusterAndExpandedLayers(map, id, data, { "circle-color": color }, level);
+      } else {
+        this.addHeatmapLayer(map, id, data, color);
+      }
     }
   }
 
   static removeLayersForId(map: mapboxgl.Map, id: string) {
-    const layers = [`${id}-cluster`, `${id}-extruded`];
-    const sources = [`${id}-cluster`, `${id}-extruded`];
-  
+    const layers = [`${id}-cluster`, `${id}-extruded`, `${id}-heatmap`];
+    const sources = [`${id}-cluster`, `${id}-extruded`, `${id}-heatmap`];
     for (const layerId of layers) {
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId);
-      }
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
     }
-  
     for (const sourceId of sources) {
-      if (map.getSource(sourceId)) {
-        map.removeSource(sourceId);
-      }
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
     }
   }
 
-  /**
-   * Return color per dataset based on light/dark mode.
-   */
   private static getColorForId(id: string, isDark: boolean): string {
     const darkColors: Record<string, string> = {
       shootings: "#ff0000",
@@ -211,7 +204,7 @@ export class MapLayers {
       homicides: "#000000",
       motor_thefts: "#9900cc",
       robberies: "#006600",
-      thefts_over_open: "#ffcc00",
+      thefts_over_open: "#ffcc00"
     };
 
     const lightColors: Record<string, string> = {
@@ -222,7 +215,7 @@ export class MapLayers {
       homicides: "#333333",
       motor_thefts: "#cc66ff",
       robberies: "#00b300",
-      thefts_over_open: "#ffd700",
+      thefts_over_open: "#ffd700"
     };
 
     return (isDark ? darkColors : lightColors)[id] || "#777777";

@@ -15,10 +15,8 @@ import {
   GiChalkOutlineMurder
 } from "react-icons/gi";
 import { GrBike } from "react-icons/gr";
-import { ReactNode } from "react";
 import { MapLayers, datasets } from "@/app/map_layers";
 
-// Crime layer configuration with color-coding
 const CRIME_LAYERS = [
   { key: "shootings", label: "Shootings", icon: <FaGun />, color: "#ff3333" },
   { key: "homicides", label: "Homicides", icon: <GiChalkOutlineMurder />, color: "#333333" },
@@ -30,19 +28,7 @@ const CRIME_LAYERS = [
   { key: "motorThefts", label: "Motor Vehicle Thefts", icon: <FaCarCrash />, color: "#cc66ff" },
 ];
 
-function CrimeLayerToggle({
-  label,
-  icon,
-  color,
-  selected,
-  onClick,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  color: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
+function CrimeLayerToggle({ label, icon, color, selected, onClick }) {
   return (
     <div
       onClick={onClick}
@@ -59,7 +45,7 @@ function CrimeLayerToggle({
         fontWeight: selected ? 700 : 500,
         color: selected ? "#000" : "#111",
         borderLeft: selected ? `6px solid ${color}` : "6px solid transparent",
-        transition: "all 0.2s ease",
+        transition: "all 0.2s ease"
       }}
       onMouseEnter={(e) => {
         if (!selected) e.currentTarget.style.background = "rgba(0,0,0,0.05)";
@@ -74,12 +60,7 @@ function CrimeLayerToggle({
   );
 }
 
-interface Props {
-  map: mapboxgl.Map | null;
-  isDark: boolean;
-}
-
-export function MapSettingsSidebar({ map, isDark }: Props) {
+export function MapSettingsSidebar({ map, isDark, visualizationMode, setVisualizationMode }) {
   const [open, setOpen] = useState(false);
 
   const [layers, setLayers] = useState({
@@ -90,57 +71,44 @@ export function MapSettingsSidebar({ map, isDark }: Props) {
     bicycleThefts: false,
     robberies: false,
     openData: false,
-    motorThefts: false,
+    motorThefts: false
   });
 
   const [satellite, setSatellite] = useState(false);
-  const [mapStyle, setMapStyle] = useState<"heatmap" | "dots" | "alt">("heatmap");
 
-  const toggleLayer = (key: keyof typeof layers) => {
-  setLayers((prev) => {
-    const newValue = !prev[key];
-    
-    // Update the corresponding dataset
-    const datasetMap: Record<string, string> = {
-      shootings: "shootings",
-      homicides: "homicides",
-      assaults: "assaults",
-      autoThefts: "auto_thefts",
-      bicycleThefts: "bicycle_thefts",
-      robberies: "robberies",
-      openData: "thefts_over_open",
-      motorThefts: "motor_thefts",
-    };
-
-    const datasetId = datasetMap[key];
-    const dataset = datasets.find((d) => d.id === datasetId);
-    if (dataset) dataset.enabled = newValue;
-    if (map) {
-      if (newValue) {
-        // layer turned ON → re-render all valid layers
-        MapLayers.restoreAllLayers(map, isDark);
-      } else {
-        // layer turned OFF → remove its layers immediately
-        MapLayers.removeLayersForId(map, datasetId);
+  const toggleLayer = (key) => {
+    setLayers((prev) => {
+      const newValue = !prev[key];
+      const datasetMap = {
+        shootings: "shootings",
+        homicides: "homicides",
+        assaults: "assaults",
+        autoThefts: "auto_thefts",
+        bicycleThefts: "bicycle_thefts",
+        robberies: "robberies",
+        openData: "thefts_over_open",
+        motorThefts: "motor_thefts"
+      };
+      const datasetId = datasetMap[key];
+      const dataset = datasets.find((d) => d.id === datasetId);
+      if (dataset) dataset.enabled = newValue;
+      if (map) {
+        if (newValue) MapLayers.restoreAllLayers(map, isDark, visualizationMode);
+        else MapLayers.removeLayersForId(map, datasetId);
       }
-    }
-    return { ...prev, [key]: newValue };
-  });
-};
+      return { ...prev, [key]: newValue };
+    });
+  };
 
-  const styleButton = (
-    key: "heatmap" | "dots" | "alt",
-    label: string,
-    image: string
-  ) => (
+  const styleButton = (key, label, image) => (
     <button
       key={key}
-      onClick={() => setMapStyle(key)}
+      onClick={() => setVisualizationMode(key === "heatmap" ? "heatmap" : "dotmap")}
       style={{
         width: "80px",
         height: "80px",
         borderRadius: "12px",
-        border: mapStyle === key ? "2px solid #007AFF" : "1px solid #ccc",
+        border: visualizationMode === key ? "2px solid #007AFF" : "1px solid #ccc",
         overflow: "hidden",
         padding: 0,
         position: "relative",
@@ -155,21 +123,17 @@ export function MapSettingsSidebar({ map, isDark }: Props) {
         fontWeight: 600,
         fontSize: "0.75rem",
         cursor: "pointer",
-        transition: "transform 0.2s ease",
+        transition: "transform 0.2s ease"
       }}
       onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
       onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1.0)")}
     >
-      <div
-        style={{
-          width: "100%",
-          background: "rgba(0, 0, 0, 0.6)",
-          padding: "4px 0",
-          textAlign: "center",
-        }}
-      >
-        {label}
-      </div>
+      <div style={{
+        width: "100%",
+        background: "rgba(0, 0, 0, 0.6)",
+        padding: "4px 0",
+        textAlign: "center"
+      }}>{label}</div>
     </button>
   );
 
@@ -187,7 +151,6 @@ export function MapSettingsSidebar({ map, isDark }: Props) {
           Map Settings (Click!)
         </h1>
 
-        {/* Crime layer toggles */}
         <div style={{ marginTop: "12px" }}>
           {CRIME_LAYERS.map(({ key, label, icon, color }) => (
             <CrimeLayerToggle
@@ -195,13 +158,12 @@ export function MapSettingsSidebar({ map, isDark }: Props) {
               label={label}
               icon={icon}
               color={color}
-              selected={layers[key as keyof typeof layers]}
-              onClick={() => toggleLayer(key as keyof typeof layers)}
+              selected={layers[key]}
+              onClick={() => toggleLayer(key)}
             />
           ))}
         </div>
 
-        {/* Satellite toggle remains untouched */}
         <div style={{ marginTop: "16px" }}>
           <CrimeLayerToggle
             label="Satellite Map"
@@ -212,28 +174,14 @@ export function MapSettingsSidebar({ map, isDark }: Props) {
           />
         </div>
 
-        {/* Map style buttons */}
         <div style={{ marginTop: "24px" }}>
-          <h2
-            style={{
-              fontSize: "0.9rem",
-              fontWeight: 600,
-              marginBottom: "8px",
-              textAlign: "center",
-            }}
-          >
+          <h2 style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "8px", textAlign: "center" }}>
             Map Visual Style
           </h2>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "12px",
-            }}
-          >
+          <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
             {styleButton("heatmap", "Heatmap", "/icons/heatmap-preview.png")}
-            {styleButton("dots", "Dotmap", "/icons/dotmap-preview.png")}
-            {styleButton("alt", "Iconmap", "/icons/iconmap-preview.png")}
+            {styleButton("dotmap", "Dotmap", "/icons/dotmap-preview.png")}
+            {styleButton("iconmap", "Iconmap", "/icons/iconmap-preview.png")}
           </div>
         </div>
       </aside>
